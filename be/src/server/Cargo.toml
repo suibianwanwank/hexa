@@ -1,0 +1,37 @@
+[package]
+name = "hexa-server"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.72"
+
+
+
+[dependencies]
+
+hexa-proto = { workspace = true }
+hexa = { workspace = true }
+
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+rustyline = { workspace = true, features = ["rusqlite", "with-sqlite-history", "derive"] }
+
+tonic = { workspace = true }
+datafusion = { workspace = true }
+arrow-flight = { workspace = true }
+mimalloc-rust = { workspace = true }
+snafu = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+
+owo-colors = "3"
+
+
+[[bin]]
+name = "hexa-be-server"
+path = "src/bin/main.rs"
+
+[[bin]]
+name = "hexa-cli"
+path = "src/bin/cli.rs"

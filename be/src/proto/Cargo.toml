@@ -1,0 +1,31 @@
+[package]
+name = "hexa-proto"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.72"
+exclude = ["*.proto"]
+
+[dependencies]
+prost = "0.12.3"
+tokio = { workspace = true }
+tonic = { workspace = true }
+
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = { workspace = true }
+pbjson = { version = "0.6.0" }
+arrow = { workspace = true }
+
+datafusion-common = { workspace = true }
+datafusion = { workspace = true }
+
+object_store = { workspace = true }
+chrono = { workspace = true }
+
+strum = { version = "0.26.1", features = ["derive"] }
+
+hexa = { workspace = true }
+
+[build-dependencies]
+tonic-build = "0.11.0"
+pbjson-build = "=0.6.2"
+

@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package execute;
+
+option java_multiple_files = true;
+option java_package = "arrow.datafusion.protobuf";
+option java_outer_classname = "ExtendPlan";
+
+import "datafusion.proto";
+
+service Bridge {
+
+  rpc executeQuery (datafusion.PhysicalPlanNode) returns (stream RowDisplayResult);
+
+  rpc listTablesInCatalog(ListTablesRequest) returns (stream ListTablesResponse);
+
+  rpc getTableDetail(GetTableRequest) returns (TableInfo);
+}
+
+message ListTablesRequest {
+  datafusion.SourceScanConfig config = 2;
+}
+
+message GetTableRequest{
+  string schemaName = 2;
+  string tableName = 3;
+  datafusion.SourceScanConfig config = 4;
+}
+
+
+message IpcMessage {
+  bytes header = 1;
+  bytes data = 2;
+}
+
+message RowDisplayResult{
+  bytes data = 1;
+}
+
+message SchemaInfo{
+  string catalogName = 1;
+  string schemaName = 2;
+}
+
+message TableInfo{
+  string catalogName = 1;
+  string schemaName = 2;
+  string tableName = 3;
+  int64 rowCount = 4;
+  repeated FieldInfo fields = 5;
+}
+
+message FieldInfo {
+  string fieldName = 1;
+  datafusion.ArrowType typeName = 2;
+  bool nullable = 3;
+}
+
+message ListTablesResponse {
+  oneof info{
+    SchemaInfo schemaInfo = 1;
+    TableInfo tableInfo = 2;
+  }
+}
+
+

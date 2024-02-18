@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package execute;
+
+option java_multiple_files = true;
+option java_package = "job";
+option java_outer_classname = "CliProto";
+
+
+service CliBridge {
+  rpc submitSqlJob (sqlJobRequest) returns (stream CliDisplayResponse);
+}
+
+message sqlJobRequest{
+  string sql = 1;
+}
+
+message CliDisplayResponse{
+  string content = 1;
+}

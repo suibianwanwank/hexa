@@ -1,0 +1,179 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless  by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+package com.ccsu.datastore;
+
+option java_package = "com.ccsu.datastore.api";
+option optimize_for = SPEED;
+
+message SearchQuery {
+    enum Type {
+        MATCH_ALL = 0;
+        BOOLEAN = 1;
+        TERM = 2;
+        RANGE_INT = 3;
+        RANGE_LONG = 4;
+        RANGE_DOUBLE = 5;
+        RANGE_TERM = 6;
+        WILDCARD = 7;
+        TERM_INT = 8;
+        TERM_LONG = 9;
+        TERM_DOUBLE = 10;
+        EXISTS = 11;
+        DOES_NOT_EXIST = 12;
+        BOOST = 13;
+        CONTAINS = 14;
+        PREFIX = 15;
+        IN = 16;
+        NOT_EQUAL = 17;
+    }
+
+    enum BooleanOp {
+        OR = 0;
+        AND = 1;
+    }
+
+    // Match all documents
+    message MatchAll {
+    }
+
+    message Boolean {
+        BooleanOp op = 1;
+        repeated SearchQuery clauses = 2;
+    }
+
+    message NotEqual {
+        string field = 1;
+        string value = 2;
+    }
+
+    message Term {
+        string field = 1;
+        string value = 2;
+    }
+
+    message TermInt {
+        string field = 1;
+        int32 value = 2;
+    }
+
+    message TermLong {
+        string field = 1;
+        int64 value = 2;
+    }
+
+    message TermDouble {
+        string field = 1;
+        double value = 2;
+    }
+
+    message RangeInt {
+        string field = 1;
+        optional int32 min = 2;
+        optional int32 max = 3;
+        optional bool min_inclusive = 4;
+        optional bool max_inclusive = 5;
+    }
+
+    message RangeLong {
+        string field = 1;
+        optional int64 min = 2;
+        optional int64 max = 3;
+        optional bool min_inclusive = 4;
+        optional bool max_inclusive = 5;
+    }
+
+    message RangeDouble {
+        string field = 1;
+        optional double min = 2;
+        optional double max = 3;
+        optional bool min_inclusive = 4;
+        optional bool max_inclusive = 5;
+    }
+
+    message RangeTerm {
+        string field = 1;
+        optional string min = 2;
+        optional string max = 3;
+        optional bool min_inclusive = 4;
+        optional bool max_inclusive = 5;
+    }
+
+    message Wildcard {
+        string field = 1;
+        string value = 2;
+    }
+
+    message Exists {
+        string field = 1;
+    }
+
+    message Boost {
+        SearchQuery clause = 1;
+        float boost = 2;
+    }
+
+    message Contains {
+        string field = 1;
+        string value = 2;
+    }
+
+    message Prefix {
+        string field = 1;
+        string value = 2;
+    }
+
+    message In {
+        string field = 1;
+        repeated string value = 2;
+    }
+
+    Type type = 1;
+    MatchAll match_all = 2;
+    Boolean boolean = 3;
+    Term term = 4;
+    RangeInt range_int = 5;
+    RangeLong range_long = 6;
+    RangeDouble range_double = 7;
+    RangeTerm range_term = 8;
+    Wildcard wildcard = 9;
+    TermInt term_int = 10;
+    TermLong term_long = 11;
+    TermDouble term_double = 12;
+    Exists exists = 13;
+    Boost boost = 14;
+    Contains contains_text = 15;
+    Prefix prefix = 16;
+    In in = 17;
+    NotEqual not_equal = 18;
+}
+
+message SearchFieldSorting {
+    enum FieldType {
+        STRING = 0;
+        LONG = 1;
+        DOUBLE = 2;
+        INTEGER = 3;
+    }
+
+    enum SortOrder {
+        ASC = 0;
+        DESC = 1;
+    }
+
+    string field = 1; // field name to sort by
+    FieldType type = 2;
+    SortOrder order = 3;
+}

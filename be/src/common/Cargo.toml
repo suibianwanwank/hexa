@@ -1,0 +1,9 @@
+[package]
+name = "hexa-common"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+datafusion = {workspace = true}
+snafu = {workspace = true}

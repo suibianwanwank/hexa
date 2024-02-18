@@ -1,0 +1,31 @@
+[package]
+name = "hexa"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+datafusion-common = { workspace = true }
+datafusion = { workspace = true }
+tokio = { workspace = true }
+tonic = { workspace = true }
+async-trait = { workspace = true }
+
+
+# tokio (no TLS)
+sqlx = { workspace = true, features = ["runtime-tokio", "mysql", "postgres", "bigdecimal", "rust_decimal", "chrono"] }
+
+prost = "0.12"
+snafu = { workspace = true }
+
+hexa-common = { workspace = true }
+futures-core = "0.3.30"
+
+bigdecimal = "0.3.1"
+chrono = "0.4.34"
+
+tracing = {workspace = true}
+
+
