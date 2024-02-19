@@ -5,6 +5,7 @@ import arrow.datafusion.ArrowType;
 import arrow.datafusion.Decimal;
 import arrow.datafusion.EmptyMessage;
 import arrow.datafusion.JoinFilter;
+import arrow.datafusion.JoinOn;
 import arrow.datafusion.JoinType;
 import arrow.datafusion.PhysicalAggregateExprNode;
 import arrow.datafusion.PhysicalCaseNode;
@@ -25,6 +26,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 
 import java.util.List;
@@ -105,7 +107,7 @@ public class PhysicalPlanTransformUtil {
         }
     }
 
-    public static PhysicalExprNode transformAggFunction(AggregateCall call,  List<RelDataTypeField> fields) {
+    public static PhysicalExprNode transformAggFunction(AggregateCall call, List<RelDataTypeField> fields) {
         PhysicalAggregateExprNode.Builder builder = PhysicalAggregateExprNode.newBuilder();
         String aggName = call.getName();
         AggregateFunction aggregateFunction = null;
@@ -168,6 +170,30 @@ public class PhysicalPlanTransformUtil {
         return builder.build();
     }
 
+    public static JoinOn transformJoinOn(RexNode rexNode) {
+        if (!rexNode.isA(SqlKind.EQUALS)) {
+            String errMsg = String.format("RexNode:%s can't transformed Join On", rexNode);
+            throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
+        }
+        RexCall call = (RexCall) rexNode;
+        RexNode left = call.getOperands().get(0);
+        RexNode right = call.getOperands().get(0);
+        if (!left.isA(SqlKind.INPUT_REF) || !right.isA(SqlKind.INPUT_REF)) {
+            String errMsg = String.format("RexNode:%s can't transformed Join On", rexNode);
+            throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
+        }
+        RexInputRef leftInput = (RexInputRef) left;
+        RexInputRef rightInput = (RexInputRef) right;
+        return JoinOn.newBuilder()
+                .setLeft(PhysicalColumn.newBuilder()
+                        .setName(leftInput.getName())
+                        .setIndex(leftInput.getIndex()))
+                .setRight(PhysicalColumn.newBuilder()
+                        .setName(rightInput.getName())
+                        .setIndex(rightInput.getIndex()))
+                .build();
+    }
+
     public static PhysicalLikeExprNode transformLikeNode(RexCall call) {
         PhysicalLikeExprNode.Builder builder = PhysicalLikeExprNode.newBuilder();
         List<RexNode> operands = call.getOperands();
@@ -197,9 +223,9 @@ public class PhysicalPlanTransformUtil {
                 args.add(transformRexNodeToExprNode(operand));
             }
             return PhysicalScalarUdfNode.newBuilder()
-                        .setName(operator.getName())
-                        .addAllArgs(args)
-                        .build();
+                    .setName(operator.getName())
+                    .addAllArgs(args)
+                    .build();
         }
         String errMsg = String.format("RexNode:%s can not be convert", node);
         throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);

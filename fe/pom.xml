@@ -7,7 +7,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>DataOdyssey</name>
+    <name>hexa-fe</name>
     <url>http://maven.apache.org</url>
     <modules>
         <module>metadata</module>
@@ -19,7 +19,6 @@
         <module>grpc</module>
         <module>main</module>
         <module>web-api</module>
-        <module>fe</module>
     </modules>
 
     <properties>
@@ -486,40 +485,6 @@
             </extension>
         </extensions>
         <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-checkstyle-plugin</artifactId>-->
-<!--                <version>3.1.2</version>-->
-<!--                <dependencies>-->
-<!--                    <dependency>-->
-<!--                        <groupId>com.puppycrawl.tools</groupId>-->
-<!--                        <artifactId>checkstyle</artifactId>-->
-<!--                        <version>9.3</version>-->
-<!--                    </dependency>-->
-<!--                </dependencies>-->
-<!--                <configuration>-->
-<!--                    <configLocation>src/config/checkstyle.xml</configLocation>-->
-<!--                    <suppressionsLocation>src/config/suppressions.xml</suppressionsLocation>-->
-<!--                    <consoleOutput>true</consoleOutput>-->
-<!--                    <detail>true</detail>-->
-<!--                    <encoding>UTF-8</encoding>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>checkstyle</id>-->
-<!--                        <phase>validate</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>check</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            &lt;!&ndash; 为true时在违规时构建失败 &ndash;&gt;-->
-<!--                            <failOnViolation>true</failOnViolation>-->
-<!--                            &lt;!&ndash;为true并且 Checkstyle 报告了任何违规或错误，则在检查 logViolationsToConsole 的⽇志之前，在运⾏ Checkstyle 后构建会⽴即失败&ndash;&gt;-->
-<!--                            <failsOnError>true</failsOnError>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -533,29 +498,7 @@
                 </dependencies>
                 <executions>
                     <execution>
-                        <!-- 检测 Maven 版本 -->
-                        <!-- https://maven.apache.org/enforcer/enforcer-rules/requireMavenVersion.html -->
-                        <id>default-cli</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireMavenVersion>
-                                    <version>3.5.0</version>
-                                </requireMavenVersion>
-                                <requireJavaVersion>
-                                    <version>1.8</version>
-                                    <message>
-                                        <![CDATA[You are running an older version of Java. This application requires at least JDK 1.8.]]>
-                                    </message>
-                                </requireJavaVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <!-- 检查依赖重复声明的情况 -->
+                        <!-- Checking for duplicate declarations of dependencies -->
                         <!-- https://maven.apache.org/enforcer/enforcer-rules/banDuplicatePomDependencyVersions.html -->
                         <id>enforce-no-duplicate-declared-dependencies</id>
                         <goals>
@@ -568,7 +511,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <!-- 确保父子模块的版本是一致的。 -->
+                        <!-- Make sure the versions of the parent and child modules are the same。 -->
                         <!-- https://maven.apache.org/enforcer/enforcer-rules/reactorModuleConvergence.html -->
                         <id>enforce-reactorModuleConvergence</id>
                         <goals>
@@ -577,35 +520,46 @@
                         <configuration>
                             <rules>
                                 <reactorModuleConvergence>
-                                    <message>父子模块的版本必须一直。</message>
+                                    <message>Make sure the versions of the parent and child modules are the same。</message>
                                     <ignoreModuleDependencies>true</ignoreModuleDependencies>
                                 </reactorModuleConvergence>
                             </rules>
                             <fail>true</fail>
                         </configuration>
                     </execution>
-<!--                    <execution>-->
-<!--                        &lt;!&ndash; https://maven.apache.org/enforcer/enforcer-rules/bannedDependencies.html &ndash;&gt;-->
-<!--                        <id>enforce-banned-dependencies</id>-->
-<!--                        <goals>-->
-<!--                            <goal>enforce</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <rules>-->
-<!--                                <bannedDependencies>-->
-<!--                                    <searchTransitive>true</searchTransitive>-->
-<!--                                    <excludes>-->
-<!--                                        <exclude>org.projectlombok:lombok</exclude>-->
-<!--                                    </excludes>-->
-<!--                                    <includes>-->
-<!--                                        <include>org.projectlombok:lombok:*:*:provided</include>-->
-<!--                                    </includes>-->
-<!--                                </bannedDependencies>-->
-<!--                                &lt;!&ndash; groupId[:artifactId][:version][:type][:scope][:classifier] &ndash;&gt;-->
-<!--                            </rules>-->
-<!--                            <fail>true</fail>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.1.2</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>9.3</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>src/config/checkstyle.xml</configLocation>
+                    <suppressionsLocation>src/config/suppressions.xml</suppressionsLocation>
+                    <excludes>com/ccsu/datastore/api/*, com/ccsu/store/api/*, com/ccsu/parser/*, arrow/datafusion/*</excludes>
+                    <consoleOutput>true</consoleOutput>
+                    <detail>true</detail>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <failOnViolation>true</failOnViolation>
+                            <failsOnError>true</failsOnError>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

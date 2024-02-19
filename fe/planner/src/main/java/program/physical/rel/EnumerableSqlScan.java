@@ -1,8 +1,8 @@
 package program.physical.rel;
 
-import arrow.datafusion.PhysicalExprNode;
 import arrow.datafusion.PhysicalExtensionNode;
 import arrow.datafusion.PhysicalPlanNode;
+import arrow.datafusion.SourceType;
 import com.google.common.collect.ImmutableList;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
@@ -10,15 +10,20 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelNode;
+
+import java.util.List;
 
 public class EnumerableSqlScan
         extends EnumerableTableScan
         implements PhysicalPlan {
 
+    SourceType sourceType;
     private final String sql;
 
 
-    public static EnumerableSqlScan create(String sql, RelOptCluster cluster, RelOptTable table, Class elementType) {
+    public static EnumerableSqlScan create(SourceType sourceType, String sql,
+                                           RelOptCluster cluster, RelOptTable table, Class elementType) {
         final RelTraitSet traitSet =
                 cluster.traitSetOf(EnumerableConvention.INSTANCE)
                         .replaceIfs(RelCollationTraitDef.INSTANCE, () -> {
@@ -27,7 +32,7 @@ public class EnumerableSqlScan
                             }
                             return ImmutableList.of();
                         });
-        return new EnumerableSqlScan(sql, cluster, traitSet, table, elementType);
+        return new EnumerableSqlScan(sourceType, sql, cluster, traitSet, table, elementType);
     }
 
     /**
@@ -40,7 +45,7 @@ public class EnumerableSqlScan
      * @param table
      * @param elementType
      */
-    public EnumerableSqlScan(String sql, RelOptCluster cluster, RelTraitSet traitSet,
+    public EnumerableSqlScan(SourceType sourceType, String sql, RelOptCluster cluster, RelTraitSet traitSet,
                              RelOptTable table, Class elementType) {
         super(cluster, traitSet, table, elementType);
         this.sql = sql;
@@ -51,11 +56,15 @@ public class EnumerableSqlScan
     }
 
     @Override
-    public PhysicalPlanNode transformToPP() {
-        PhysicalExtensionNode.Builder builder = PhysicalExtensionNode.newBuilder()
-                .setNode(null);
+    public PhysicalPlanNode transformToDataFusionNode() {
+        PhysicalExtensionNode.Builder builder = PhysicalExtensionNode.newBuilder();
         return PhysicalPlanNode.newBuilder()
                 .setExtension(builder)
                 .build();
+    }
+
+    @Override
+    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+        return new EnumerableSqlScan(null, getSql(), getCluster(), traitSet, table, Object.class);
     }
 }

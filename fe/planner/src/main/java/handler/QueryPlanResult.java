@@ -1,12 +1,12 @@
 package handler;
 
-import arrow.datafusion.PhysicalPlan;
+import arrow.datafusion.PhysicalPlanNode;
 import com.ccsu.Result;
 
-public class QueryPlanResult implements Result<PhysicalPlan> {
-    private final PhysicalPlan physicalPlan;
+public class QueryPlanResult implements Result<PhysicalPlanNode> {
+    private final PhysicalPlanNode physicalPlan;
 
-    public QueryPlanResult(PhysicalPlan physicalPlan) {
+    public QueryPlanResult(PhysicalPlanNode physicalPlan) {
         this.physicalPlan = physicalPlan;
     }
 
@@ -16,7 +16,7 @@ public class QueryPlanResult implements Result<PhysicalPlan> {
     }
 
     @Override
-    public PhysicalPlan getResult() {
+    public PhysicalPlanNode getResult() {
         return physicalPlan;
     }
 }

@@ -38,3 +38,8 @@ build/
 *.log
 
 ### RocksDB file ###
+
+
+# Added by cargo
+
+/target

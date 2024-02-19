@@ -61,7 +61,7 @@ public class EnumerableSqlScanRule extends ConverterRule {
             TableInfo metadataTable = physicalTable.getTableInfo();
             String schemaName = metadataTable.getSchemaName();
             String tableName = metadataTable.getTableName();
-            return EnumerableSqlScan.create(String.format("select * from %s.%s", schemaName, tableName),
+            return EnumerableSqlScan.create(null, String.format("select * from %s.%s", schemaName, tableName),
                     rel.getCluster(), relOptTable, Object.class);
 
         }

@@ -1,7 +1,10 @@
 package com.ccsu.manager;
 
-import arrow.datafusion.PhysicalPlan;
+import arrow.datafusion.BackEndServiceGrpc;
+import arrow.datafusion.BytesResponse;
+import com.ccsu.system.EndPoint;
 import com.ccsu.Result;
+import com.ccsu.client.GrpcProvider;
 import com.ccsu.error.CommonErrorCode;
 import com.ccsu.error.CommonException;
 import com.ccsu.parser.CalciteSqlParser;
@@ -12,6 +15,7 @@ import com.google.common.base.Stopwatch;
 import context.QueryContext;
 import handler.QueryPlanHandler;
 import handler.QueryPlanResult;
+import io.grpc.ManagedChannel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 
@@ -24,10 +28,13 @@ public class SqlJobExecutor {
     private final UserRequest userRequest;
     private AtomicReference<Result> result;
     private AtomicReference<Boolean> canceled;
+    private GrpcProvider grpcProvider;
+    private EndPoint endPoint;
 
-    public SqlJobExecutor(QueryContext queryContext, UserRequest userRequest) {
+    public SqlJobExecutor(QueryContext queryContext, UserRequest userRequest, EndPoint endPoint) {
         this.queryContext = queryContext;
         this.userRequest = userRequest;
+        this.endPoint = endPoint;
     }
 
     public Result run() {
@@ -60,9 +67,12 @@ public class SqlJobExecutor {
             QueryPlanResult queryPlanResult =
                     new QueryPlanHandler().handle(sqlNode, queryContext);
 
-            //TODO wrapper planner and send to
-            PhysicalPlan planResult = queryPlanResult.getResult();
 
+            ManagedChannel channel = grpcProvider.getOrCreateChannel(endPoint);
+
+            BackEndServiceGrpc.BackEndServiceBlockingStub blockingStub = BackEndServiceGrpc.newBlockingStub(channel);
+
+            BytesResponse bytesResponse = blockingStub.submitTask(queryPlanResult.getResult());
 
             return null;
         }

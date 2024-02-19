@@ -22,14 +22,34 @@ public class ExtendEnumerableBatchNestedLoopJoin
         extends EnumerableBatchNestedLoopJoin
         implements PhysicalPlan {
 
-    protected ExtendEnumerableBatchNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left, RelNode right, RexNode condition, Set<CorrelationId> variablesSet, ImmutableBitSet requiredColumns, JoinRelType joinType) {
+
+    public static ExtendEnumerableBatchNestedLoopJoin create(
+            EnumerableBatchNestedLoopJoin enumerableBatchNestedLoopJoin) {
+        return new ExtendEnumerableBatchNestedLoopJoin(enumerableBatchNestedLoopJoin.getCluster(),
+                enumerableBatchNestedLoopJoin.getTraitSet(),
+                enumerableBatchNestedLoopJoin.getLeft(),
+                enumerableBatchNestedLoopJoin.getRight(),
+                enumerableBatchNestedLoopJoin.getCondition(),
+                enumerableBatchNestedLoopJoin.getVariablesSet(),
+                null,
+                enumerableBatchNestedLoopJoin.getJoinType());
+    }
+
+    protected ExtendEnumerableBatchNestedLoopJoin(RelOptCluster cluster,
+                                                  RelTraitSet traits,
+                                                  RelNode left,
+                                                  RelNode right,
+                                                  RexNode condition,
+                                                  Set<CorrelationId> variablesSet,
+                                                  ImmutableBitSet requiredColumns,
+                                                  JoinRelType joinType) {
         super(cluster, traits, left, right, condition, variablesSet, requiredColumns, joinType);
     }
 
     @Override
-    public PhysicalPlanNode transformToPP() {
-        PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToPP();
-        PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToPP();
+    public PhysicalPlanNode transformToDataFusionNode() {
+        PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToDataFusionNode();
+        PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToDataFusionNode();
         JoinType joinType = transformJoinType(getJoinType());
         JoinFilter joinFilter = transformRexNodeToJoinFilter(condition);
         NestedLoopJoinExecNode.Builder builder = NestedLoopJoinExecNode.newBuilder()

@@ -68,7 +68,7 @@ public class SqlJobManager implements JobManager {
     }
 
     private Result executeSql(QueryContext queryContext) {
-        SqlJobExecutor sqlJobExecutor = new SqlJobExecutor(queryContext, null);
+        SqlJobExecutor sqlJobExecutor = new SqlJobExecutor(queryContext, null, null);
         return sqlJobExecutor.run();
     }
 

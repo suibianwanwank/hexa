@@ -1,10 +1,12 @@
 package handler;
 
+import arrow.datafusion.PhysicalPlanNode;
 import context.QueryContext;
 import convert.SqlConverter;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlNode;
 import program.QueryPlannerProgram;
+import program.physical.rel.PhysicalPlan;
 
 public class QueryPlanHandler
         implements SqlHandler<QueryPlanResult, SqlNode, QueryContext> {
@@ -20,11 +22,11 @@ public class QueryPlanHandler
 
         RelNode physicalPlan = QueryPlannerProgram.LOGICAL_OPTIMIZE_PROGRAM.optimize(preLogical, context);
 
-//        PhysicalNode physicalNode =
-//                (PhysicalNode) QueryPlannerProgram.LOGICAL_TO_PHYSICAL_PROGRAM.optimize(logical, context);
+        RelNode lastPlan =
+                QueryPlannerProgram.PHYSICAL_OPTIMIZE_PROGRAM.optimize(physicalPlan, context);
 
-        // TODO optimize physical plan
+        PhysicalPlanNode dataFusionPlan = ((PhysicalPlan) lastPlan).transformToDataFusionNode();
 
-        return new QueryPlanResult(null);
+        return new QueryPlanResult(dataFusionPlan);
     }
 }

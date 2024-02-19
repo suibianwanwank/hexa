@@ -2,7 +2,6 @@ package com.ccsu.parser;
 
 import com.ccsu.error.CommonException;
 
-import com.ccsu.parser.ExtendSqlParserImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlNode;

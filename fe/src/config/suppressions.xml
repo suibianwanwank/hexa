@@ -52,6 +52,8 @@ limitations under the License.
        'core' and 'server'. -->
   <suppress checks="JavadocPackage" files=".*"/>
 
+<!--  <suppress checks="[a-zA-Z0-9]*" files="CalciteSqlParser.java"/>-->
+
   <!-- Method names in Resource can have underscores -->
   <suppress checks="MethodName" files="CalciteResource.java"/>
 </suppressions>

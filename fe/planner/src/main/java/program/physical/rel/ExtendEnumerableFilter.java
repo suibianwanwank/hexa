@@ -15,6 +15,12 @@ public class ExtendEnumerableFilter
         extends EnumerableFilter
         implements PhysicalPlan {
 
+
+    public static ExtendEnumerableFilter create(EnumerableFilter enumerableFilter) {
+        return new ExtendEnumerableFilter(enumerableFilter.getCluster(),
+                enumerableFilter.getTraitSet(), enumerableFilter.getInput(), enumerableFilter.getCondition());
+    }
+
     /**
      * Creates an EnumerableFilter.
      *
@@ -25,19 +31,24 @@ public class ExtendEnumerableFilter
      * @param child
      * @param condition
      */
-    public ExtendEnumerableFilter(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, RexNode condition) {
+    private ExtendEnumerableFilter(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, RexNode condition) {
         super(cluster, traitSet, child, condition);
     }
 
     @Override
-    public PhysicalPlanNode transformToPP() {
+    public PhysicalPlanNode transformToDataFusionNode() {
         PhysicalExprNode exprNode = transformRexNodeToExprNode(getCondition());
-        PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToPP();
+        PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
         FilterExecNode.Builder builder = FilterExecNode.newBuilder()
                 .setExpr(exprNode)
                 .setInput(input);
         return PhysicalPlanNode.newBuilder()
                 .setFilter(builder)
                 .build();
+    }
+
+    @Override
+    public ExtendEnumerableFilter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+        return new ExtendEnumerableFilter(getCluster(), traitSet, input, condition);
     }
 }

@@ -5,6 +5,7 @@ import program.logical.LogicalHepProgram;
 import program.logical.LogicalVolcanoProgram;
 import program.program.RuleOptimizeProgram;
 import program.program.SequenceRuleBasedProgram;
+import program.rule.ExtendPhysicalRelTransformRule;
 import program.rule.LogicalCoreRules;
 
 public class QueryPlannerProgram {
@@ -38,10 +39,8 @@ public class QueryPlannerProgram {
                             .build())
                     .build();
 
-    public static final RuleOptimizeProgram LOGICAL_TO_PHYSICAL_PROGRAM =
+    public static final RuleOptimizeProgram PHYSICAL_OPTIMIZE_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
-                    .addLast(new LogicalVolcanoProgram.LogicalVolcanoProgramBuilder()
-                            .add(LogicalCoreRules.LOGICAL_TO_PHYSICAL_RULES)
-                            .build())
+                    .addLast(ExtendPhysicalRelTransformRule.INSTANCE)
                     .build();
 }

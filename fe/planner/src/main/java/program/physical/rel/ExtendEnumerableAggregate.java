@@ -3,16 +3,12 @@ package program.physical.rel;
 import arrow.datafusion.AggregateExecNode;
 import arrow.datafusion.PhysicalPlanNode;
 import org.apache.calcite.adapter.enumerable.EnumerableAggregate;
-import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -25,12 +21,27 @@ public class ExtendEnumerableAggregate
         extends EnumerableAggregate
         implements PhysicalPlan {
 
-    public ExtendEnumerableAggregate(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet, @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) throws InvalidRelException {
+    public static ExtendEnumerableAggregate create(EnumerableAggregate enumerableAggregate)
+            throws InvalidRelException {
+        return new ExtendEnumerableAggregate(enumerableAggregate.getCluster(),
+                enumerableAggregate.getTraitSet(),
+                enumerableAggregate.getInput(),
+                enumerableAggregate.getGroupSet(),
+                enumerableAggregate.getGroupSets(),
+                enumerableAggregate.getAggCallList());
+    }
+
+    private ExtendEnumerableAggregate(RelOptCluster cluster,
+                                      RelTraitSet traitSet,
+                                      RelNode input,
+                                      ImmutableBitSet groupSet,
+                                      @Nullable List<ImmutableBitSet> groupSets,
+                                      List<AggregateCall> aggCalls) throws InvalidRelException {
         super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     }
 
     @Override
-    public PhysicalPlanNode transformToPP() {
+    public PhysicalPlanNode transformToDataFusionNode() {
         AggregateExecNode.Builder aggregateNode = AggregateExecNode.newBuilder();
         for (Integer bitSet : getGroupSet()) {
             RexInputRef inputRef = RexInputRef.of(bitSet, getRowType().getFieldList());
@@ -40,5 +51,18 @@ public class ExtendEnumerableAggregate
             aggregateNode.addAggrExpr(transformAggFunction(call, getRowType().getFieldList()));
         }
         return PhysicalPlanNode.newBuilder().setAggregate(aggregateNode).build();
+    }
+
+    @Override
+    public EnumerableAggregate copy(RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet,
+                                    @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+        try {
+            return new ExtendEnumerableAggregate(getCluster(), traitSet, input,
+                    groupSet, groupSets, aggCalls);
+        } catch (InvalidRelException e) {
+            // Semantic error not possible. Must be a bug. Convert to
+            // internal error.
+            throw new AssertionError(e);
+        }
     }
 }
