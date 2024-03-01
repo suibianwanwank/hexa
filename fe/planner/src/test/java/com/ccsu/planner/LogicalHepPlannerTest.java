@@ -15,7 +15,7 @@ import org.junit.Test;
 import program.logical.LogicalHepProgram;
 
 
-public class TestLogicalHepPlanner {
+public class LogicalHepPlannerTest {
 
     private final TestFixture fixture = new TestFixture();
     private SqlParser sqlParser;

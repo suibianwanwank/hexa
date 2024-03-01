@@ -30,25 +30,22 @@
 
         <dep.guice.version>4.2.2</dep.guice.version>
         <dep.guava.version>26.0-jre</dep.guava.version>
-        <dep.google.http.client.version>1.27.0</dep.google.http.client.version>
         <dep.airlift.version>0.205</dep.airlift.version>
+        <dep.google.http.client.version>1.27.0</dep.google.http.client.version>
+
         <dep.protobuf.version>3.25.2</dep.protobuf.version>
         <dep.protostuff.version>1.8.0</dep.protostuff.version>
         <dep.grpc.version>1.47.0</dep.grpc.version>
-        <dep.immutables.version>2.8.8</dep.immutables.version>
+
         <dep.mongodb.version>3.12.12</dep.mongodb.version>
         <dep.calcite.version>1.36.0</dep.calcite.version>
+
         <dep.jackson.version>2.14.2</dep.jackson.version>
-        <dep.grpc.version>1.47.0</dep.grpc.version>
+
+        <dep.immutables.version>2.8.8</dep.immutables.version>
         <dep.lombok.version>1.18.22</dep.lombok.version>
-
-
-
         <!-- javax.ws.rs-api version -->
         <dep.javax.ws.rs-api.version>2.1</dep.javax.ws.rs-api.version>
-
-
-
     </properties>
     <dependencyManagement>
         <dependencies>

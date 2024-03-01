@@ -8,7 +8,7 @@ import handler.SqlHandler;
 import org.apache.calcite.sql.SqlNode;
 import org.junit.Test;
 
-public class TestSqlQueryHandler {
+public class SqlQueryHandlerTest {
     SqlHandler<QueryPlanResult, SqlNode, QueryContext> handler = new QueryPlanHandler();
 
     private final TestFixture fixture = new TestFixture();
