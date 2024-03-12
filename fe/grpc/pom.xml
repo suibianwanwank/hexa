@@ -63,8 +63,8 @@
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:${dep.grpc.version}:exe:${os.detected.classifier}
                     </pluginArtifact>
                     <includes>
-                        <include>physical_plan.proto</include>
-                        <include>extend.proto</include>
+                        <include>datafusion.proto</include>
+                        <include>execute.proto</include>
                     </includes>
                     <clearOutputDirectory>false</clearOutputDirectory>
                 </configuration>

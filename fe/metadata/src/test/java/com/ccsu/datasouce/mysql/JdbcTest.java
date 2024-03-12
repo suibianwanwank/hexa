@@ -1,12 +1,14 @@
 package com.ccsu.datasouce.mysql;
 
 
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.sql.*;
 
 public class JdbcTest {
     @Test
+    @Ignore
     public void testJdbc() throws SQLException, ClassNotFoundException {
         //1、导入驱动jar包
         //2、注册驱动

@@ -3,9 +3,9 @@ use sqlx::{Connection, Executor};
 use super::error::{Result};
 use hexa_proto::protos::execute::DataSourceConfig;
 
-pub trait Connector {
-    async fn get_connection(config: DataSourceConfig) -> Result<Box<dyn Connection<Database=(), Options=()>>>;
 
+
+pub trait Connector{
     async fn execute(config: DataSourceConfig, sql: &str) -> Result<Vec<Vec<ArrayRef>>>;
 }
 

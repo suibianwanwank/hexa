@@ -58,7 +58,7 @@ public class MysqlConnectionServiceTest {
             druidDataSource = connectorService.createDruidDataSource(datasourceConfig);
             connection = druidDataSource.getConnection();
             List<MetadataEntity> tableNames = connectorService.listSchemas(connectorRequest, metadataEntity, connection);
-            System.out.println(tableNames);
+            Assert.assertNotNull(tableNames);
         } catch (SQLException e) {
             Assert.fail("failed to connect source");
         } finally {
@@ -81,7 +81,7 @@ public class MysqlConnectionServiceTest {
             druidDataSource = connectorService.createDruidDataSource(datasourceConfig);
             connection = druidDataSource.getConnection();
             List<MetadataEntity> entityList = connectorService.getTableNames(connectorRequest, metadataEntity, connection);
-            System.out.println(entityList);
+            Assert.assertNotNull(entityList);
         } catch (SQLException e) {
             Assert.fail("failed to connect source");
         } finally {
@@ -104,7 +104,7 @@ public class MysqlConnectionServiceTest {
             druidDataSource = connectorService.createDruidDataSource(datasourceConfig);
             connection = druidDataSource.getConnection();
             TableInfo info = connectorService.extractTableInfo(connectorRequest, metadataEntity, connection);
-            System.out.println(info);
+            Assert.assertNotNull(info);
         } catch (SQLException e) {
             Assert.fail("failed to connect source");
         } finally {

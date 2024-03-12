@@ -4,7 +4,7 @@ use datafusion::arrow::array::ArrayRef;
 use hexa_proto::protos::execute::DataSourceConfig;
 use snafu::ResultExt;
 use sqlx::postgres::{PgConnectOptions, PgRow};
-use sqlx::{Connection, ConnectOptions, Executor, PgConnection, Postgres, Row};
+use sqlx::{Connection, ConnectOptions, Executor, PgConnection, Row};
 use std::fmt::Debug;
 
 pub struct PostgresConnector {}
@@ -23,9 +23,6 @@ impl DataConverter for PgRow {
 }
 
 impl Connector for PostgresConnector {
-    async fn get_connection(config: DataSourceConfig) -> Result<Box<PgConnection>> {
-        todo!()
-    }
 
     async fn execute(config: DataSourceConfig, sql: &str) -> Result<Vec<Vec<ArrayRef>>> {
         let options = PgConnectOptions::new()
@@ -34,7 +31,7 @@ impl Connector for PostgresConnector {
             .password(config.password.as_str())
             .port(config.port as u16);
 
-        let conn = options.connect().await.context(SqlxSnafu {
+        let mut conn = options.connect().await.context(SqlxSnafu {
             detail: "Postgres connect fetch all",
         })?;
 

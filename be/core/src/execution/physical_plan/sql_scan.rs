@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::os::unix::raw::mode_t;
 use std::sync::Arc;
 use datafusion::arrow::datatypes::SchemaRef;
 use datafusion::common::{plan_err, Statistics};
@@ -72,15 +71,12 @@ impl ExecutionPlan for SqlScanExec {
         Ok(self)
     }
 
-    async fn execute(
+    fn execute(
         &self,
         partition: usize,
         context: Arc<TaskContext>,
     ) -> Result<SendableRecordBatchStream> {
-        let a = ConnectorManager::submit_sql(&self.sql, self.config.clone());
-        let a= Box::pin(async move {
-            tokio::spawn(a).await?
-        });
+        todo!()
     }
 
     fn metrics(&self) -> Option<MetricsSet> {

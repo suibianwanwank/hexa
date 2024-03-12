@@ -18,10 +18,6 @@ impl DataConverter for MySqlRow {
 }
 
 impl Connector for MysqlConnector {
-    fn get_connection(config: DataSourceConfig) -> Result<Box<MySqlConnection>> {
-        todo!()
-    }
-
     async fn execute(config: DataSourceConfig, sql: &str) -> Result<Vec<Vec<ArrayRef>>> {
         let options = MySqlConnectOptions::new()
             .host(config.host.as_str())

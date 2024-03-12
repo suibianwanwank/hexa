@@ -1,4 +1,3 @@
-use std::env;
 use std::io::Result;
 
 use tonic_build::configure;

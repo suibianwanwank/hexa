@@ -8,6 +8,10 @@ pub enum DatasourceError {
         detail: &'static str,
         source: sqlx::error::Error,
     },
+    #[snafu(display("type error! detail:{detail}"))]
+    Type {
+        detail: &'static str,
+    },
 }
 
 pub type Result<T, E = DatasourceError> = std::result::Result<T, E>;
