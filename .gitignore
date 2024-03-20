@@ -43,3 +43,7 @@ build/
 # Added by cargo
 
 /target
+
+
+**/src/generated/pbjson.rs
+**/src/generated/prost.rs

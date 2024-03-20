@@ -1,16 +1,29 @@
-[package]
+[workspace.package]
 name = "be"
 version = "0.1.0"
+publish = false
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
-members = ["core", "proto", "common"]
+members = ["src/core", "src/proto", "src/common"]
 
 [workspace.dependencies]
-datafusion = "34.0.0"
+datafusion = "36.0.0"
+datafusion-common = "36.0.0"
+arrow = { version = "50.0.0", features = ["prettyprint"] }
+
 tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 snafu = "0.8.0"
-hexa = { path = "core", version = "0.1.0" }
-hexa-proto = { path = "proto", version = "0.1.0" }
-hexa-common = { path = "common", version = "0.1.0" }
+
+hexa = { path = "src/core", version = "0.1.0" }
+hexa-proto = { path = "src/proto", version = "0.1.0" }
+hexa-common = { path = "src/common", version = "0.1.0" }
+
+prost = "0.11.0"
+tonic = "0.8.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+
+chrono = { version = "0.4.34", default-features = false }
+object_store = { version = "0.9.0", default-features = false }
