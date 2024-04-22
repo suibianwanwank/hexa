@@ -37,6 +37,9 @@ pub enum DatasourceCommonError {
         dt: DataType,
         detail: String,
     },
+    #[snafu(display("Decimal can not to i128"))]
+    DecimalI128Create {
+    },
     #[snafu(display("gen record batch error!"))]
     RecordBatchCreate {
         source: ArrowError,
