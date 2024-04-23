@@ -3,20 +3,10 @@ package program.rule;
 import com.ccsu.error.CommonErrorCode;
 import com.ccsu.error.CommonException;
 import context.QueryContext;
-import org.apache.calcite.adapter.enumerable.EnumerableAggregate;
-import org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin;
-import org.apache.calcite.adapter.enumerable.EnumerableFilter;
-import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
-import org.apache.calcite.adapter.enumerable.EnumerableProject;
-import org.apache.calcite.adapter.enumerable.EnumerableSort;
+import org.apache.calcite.adapter.enumerable.*;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
-import program.physical.rel.ExtendEnumerableAggregate;
-import program.physical.rel.ExtendEnumerableBatchNestedLoopJoin;
-import program.physical.rel.ExtendEnumerableFilter;
-import program.physical.rel.ExtendEnumerableMergeJoin;
-import program.physical.rel.ExtendEnumerableProject;
-import program.physical.rel.ExtendEnumerableSort;
+import program.physical.rel.*;
 import program.program.RuleOptimizeProgram;
 
 public class ExtendPhysicalRelTransformRule implements RuleOptimizeProgram {
@@ -45,12 +35,16 @@ public class ExtendPhysicalRelTransformRule implements RuleOptimizeProgram {
                     other = ExtendEnumerableFilter.create((EnumerableFilter) other);
                 } else if (other instanceof EnumerableProject) {
                     other = ExtendEnumerableProject.create((EnumerableProject) other);
+                } else if (other instanceof EnumerableHashJoin) {
+                    other = ExtendEnumerableHashJoin.create((EnumerableHashJoin) other);
                 } else if (other instanceof EnumerableBatchNestedLoopJoin) {
                     other = ExtendEnumerableBatchNestedLoopJoin.create((EnumerableBatchNestedLoopJoin) other);
                 } else if (other instanceof EnumerableMergeJoin) {
                     other = ExtendEnumerableMergeJoin.create((EnumerableMergeJoin) other);
                 } else if (other instanceof EnumerableSort) {
                     other = ExtendEnumerableSort.create((EnumerableSort) other);
+                } else if (other instanceof EnumerableNestedLoopJoin) {
+                    other = ExtendEnumerableNestedLoopJoin.create((EnumerableNestedLoopJoin) other);
                 }
                 return super.visit(other);
             } catch (Exception e) {

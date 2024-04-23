@@ -44,7 +44,7 @@ public class ExtendEnumerableMergeJoin
                 .setRight(((PhysicalPlan) getRight()).transformToDataFusionNode())
                 .setNullEqualsNull(false)
                 .setJoinType(transformJoinType(getJoinType()))
-                .addOn(transformJoinOn(getCondition()))
+                .addOn(transformJoinOn(getCondition(), getLeft(), getRight()))
                 .build();
         return PhysicalPlanNode.newBuilder()
                 .setExtension(PhysicalExtensionNode.newBuilder()
