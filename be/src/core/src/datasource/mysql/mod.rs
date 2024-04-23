@@ -1,11 +1,7 @@
 use crate::datasource::common::accessor::{Accessor, SqlxAccessor};
 use crate::datasource::common::meta::{ColumnDetail, DatabaseItem, SchemaDetail, TableDetail};
-use crate::datasource::common::utils::{
-    make_i16_array_from_row, make_i32_array_from_row, make_i64_array_from_row,
-    make_i8_array_from_row, make_u16_array_from_row, make_u32_array_from_row,
-    make_u64_array_from_row, make_u8_array_from_row,
-};
-use crate::datasource::common::DatasourceCommonError::NotSupportArrowType;
+use crate::datasource::common::utils::{get_bool_from_str, get_option_u32_from_row, get_str_from_row, make_date32_array_from_row, make_decimal128_array_from_row, make_decimal128_type, make_i16_array_from_row, make_i32_array_from_row, make_i64_array_from_row, make_i8_array_from_row, make_u16_array_from_row, make_u32_array_from_row, make_u64_array_from_row, make_u8_array_from_row, make_utf8_array_from_row};
+use crate::datasource::common::DatasourceCommonError::{NotSupportArrowType};
 use crate::datasource::common::{MysqlAccessSourceSnafu, SendDatabaseItemStreamSnafu};
 use crate::datasource::common::{SqlxFetchAllSnafu, SqlxFetchOneSnafu};
 use crate::datasource::mysql::error::MysqlError::UnSupportDataType;
@@ -19,10 +15,11 @@ use error::Result;
 use snafu::ResultExt;
 use sqlx::mysql::{MySqlConnectOptions, MySqlRow};
 use sqlx::Executor;
-use sqlx::{Column, ConnectOptions, Database, MySql, MySqlConnection, Row, TypeInfo};
+use sqlx::{ConnectOptions, Database, MySql, MySqlConnection, Row};
 use tokio::sync::mpsc;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::codegen::tokio_stream::StreamExt;
+use tracing::info;
 
 pub mod error;
 
@@ -75,7 +72,9 @@ impl SqlxAccessor for MysqlAccessor {
     type Database = MySql;
 
     async fn get_conn(&self) -> super::common::Result<MySqlConnection> {
-        self.inner_get_conn().await.context(MysqlAccessSourceSnafu {})
+        self.inner_get_conn()
+            .await
+            .context(MysqlAccessSourceSnafu {})
     }
 
     async fn row_to_array(
@@ -87,8 +86,14 @@ impl SqlxAccessor for MysqlAccessor {
     }
 }
 
-fn mysql_type_to_arrow_type(type_name: &str) -> Result<DataType> {
-    match type_name {
+fn mysql_type_to_arrow_type(
+    type_name: &str,
+    precision: Option<u32>,
+    scale: Option<u32>,
+) -> Result<DataType> {
+    let p = precision.map(|a| Some(a as i64)).unwrap_or(None);
+    let s = scale.map(|a| Some(a as i64)).unwrap_or(None);
+    match type_name.to_uppercase().as_str() {
         "TINYINT(1)" | "BOOLEAN" | "BOOL" => Ok(Boolean),
         "TINYINT" => Ok(Int8),
         "SMALLINT" => Ok(Int16),
@@ -102,8 +107,10 @@ fn mysql_type_to_arrow_type(type_name: &str) -> Result<DataType> {
         "DOUBLE" => Ok(Float64),
         "VARCHAR" | "CHAR" | "TEXT" => Ok(Utf8),
         "VARBINARY" | "BINARY" | "BLOB" => Ok(Binary),
+        "DECIMAL" => Ok(make_decimal128_type(p, s, 38, 9)),
+        "DATE" => Ok(Date32),
         _ => Err(UnSupportDataType {
-            datatype: type_name.to_string(),
+            datatype: type_name.into(),
         }),
     }
 }
@@ -116,24 +123,30 @@ impl_row_to_array!(mysql_row_to_array, MySqlRow, [
     { UInt8, make_u8_array_from_row },
     { UInt16, make_u16_array_from_row },
     { UInt32, make_u32_array_from_row },
-    { UInt64, make_u64_array_from_row }
+    { UInt64, make_u64_array_from_row },
+    { Utf8, make_utf8_array_from_row },
+    { Date32, make_date32_array_from_row },
+    { Decimal128(_p,_c), make_decimal128_array_from_row}
 ]);
 
 #[async_trait]
 impl Accessor for MysqlAccessor {
-    // type DatabaseItemStream = ReceiverStream<DatabaseItem>;
     async fn get_table_detail(
         &self,
         schema: &str,
         table: &str,
     ) -> crate::datasource::common::Result<TableDetail> {
-        let query = format!("SELECT * FROM {}.{} limit 1", schema, table);
+        let query = format!(
+            "select * from information_schema.columns where table_schema = '{}' and table_name = '{}'",
+            schema,
+            table
+        );
         let cq = format!("SELECT COUNT(*) FROM {}.{} limit 1", schema, table);
 
         let mut conn = self.get_conn().await?;
 
-        let row = conn
-            .fetch_one(sqlx::query(query.as_str()))
+        let rows = conn
+            .fetch_all(sqlx::query(query.as_str()))
             .await
             .context(SqlxFetchOneSnafu {})?;
 
@@ -143,17 +156,21 @@ impl Accessor for MysqlAccessor {
             .context(SqlxFetchOneSnafu {})?
             .get(0);
 
-        let columns = row
-            .columns()
+        let columns = rows
             .iter()
-            .map(|c| {
-                let arrow_type =
-                    mysql_type_to_arrow_type(c.type_info().name()).context(MysqlAccessSourceSnafu {})?;
-                Ok(ColumnDetail::new(
-                    c.name().into(),
-                    arrow_type,
-                    c.type_info().is_null(),
-                ))
+            .map(|row| {
+                let name = get_str_from_row(row, COLUMN_NAME_FIELD)?;
+                let type_name = get_str_from_row(row, COLUMN_TYPE_FIELD)?;
+                let precision = get_option_u32_from_row(row, PRECISION_FIELD)?;
+                let scale = get_option_u32_from_row(row, SCALE_FIELD)?;
+                let dt = mysql_type_to_arrow_type(type_name.as_str(), precision, scale)
+                    .context(MysqlAccessSourceSnafu {})?;
+                let nullable = get_bool_from_str(
+                    get_str_from_row(row, IS_NULLABLE_FIELD)?.as_str(),
+                    "YES",
+                    "NO",
+                )?;
+                Ok(ColumnDetail::new(name, dt, nullable))
             })
             .collect::<crate::datasource::common::Result<Vec<_>>>()?;
 
@@ -169,7 +186,7 @@ impl Accessor for MysqlAccessor {
     async fn get_all_schema_and_table(
         &self,
     ) -> crate::datasource::common::Result<ReceiverStream<DatabaseItem>> {
-        let (tx, rx) = mpsc::channel(100000);
+        let (tx, rx) = mpsc::channel(1000000);
 
         let mut conn = self.get_conn().await?;
 
@@ -181,12 +198,13 @@ impl Accessor for MysqlAccessor {
             .context(SqlxFetchAllSnafu {})?
         {
             // map the row into a user-defined domain type
-            let schema_name: &str = row.try_get(0).context(SqlxFetchAllSnafu {})?;
+            let schema_name = get_str_from_row(&row, SCHEMA_NAME_FIELD)?;
+            info!("collect schema {} in connect :{}", schema_name, self.name);
 
             // send schema info
             let sd = SchemaDetail {
                 catalog_name: self.name.clone(),
-                schema_name: schema_name.into(),
+                schema_name: schema_name.clone(),
             };
 
             let _ = tx
@@ -198,7 +216,7 @@ impl Accessor for MysqlAccessor {
 
             let sql = format!(
                 "select table_name from information_schema.tables where table_schema= '{}'",
-                schema_name
+                schema_name.clone()
             );
 
             let mut conn1 = self.get_conn().await?;
@@ -206,12 +224,16 @@ impl Accessor for MysqlAccessor {
 
             while let Some(row) = table_rows.try_next().await.context(SqlxFetchAllSnafu {})? {
                 // send table info
-                let table_name: &str = row.try_get(0).context(SqlxFetchAllSnafu {})?;
+                let table_name: String = get_str_from_row(&row, TABLE_NAME_FIELD)?;
+                info!(
+                    "collect table {}.{} in connect :{}",
+                    schema_name, table_name, self.name
+                );
 
                 let td = TableDetail::new_without_columns(
                     self.name.clone(),
-                    schema_name.into(),
-                    table_name.to_string(),
+                    schema_name.clone(),
+                    table_name,
                 );
 
                 let _ = tx
@@ -224,7 +246,25 @@ impl Accessor for MysqlAccessor {
         Ok(ReceiverStream::new(rx))
     }
 
-    async fn query_and_get_array(&self, schema: SchemaRef, sql: &str) -> crate::datasource::common::Result<Vec<ArrayRef>> {
+    async fn query_and_get_array(
+        &self,
+        schema: SchemaRef,
+        sql: &str,
+    ) -> crate::datasource::common::Result<Vec<ArrayRef>> {
         execute_sqlx_query_to_array!(self, schema, sql)
     }
 }
+
+const SCHEMA_NAME_FIELD: &str = "Database";
+
+const TABLE_NAME_FIELD: &str = "TABLE_NAME";
+
+const COLUMN_NAME_FIELD: &str = "COLUMN_NAME";
+
+const IS_NULLABLE_FIELD: &str = "IS_NULLABLE";
+
+const COLUMN_TYPE_FIELD: &str = "DATA_TYPE";
+
+const PRECISION_FIELD: &str = "NUMERIC_PRECISION";
+
+const SCALE_FIELD: &str = "NUMERIC_SCALE";

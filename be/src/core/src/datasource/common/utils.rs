@@ -1,13 +1,10 @@
-use crate::datasource::common::DatasourceCommonError::{ArrayCreate, DecimalI128Create};
+use crate::datasource::common::DatasourceCommonError::{ArrayCreate, DecimalI128Create, UnexpectedMetaResult};
 use crate::datasource::common::RecordBatchCreateSnafu;
 use crate::{for_primitive_array_variants, for_sqlx_type_variants, impl_get_type_from_sqlx_row, impl_sqlx_rows_to_primitive_array_data};
 use crate::datasource::common::TryGetSqlxRowSnafu;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use chrono::NaiveDate;
-use datafusion::arrow::array::{
-    ArrayRef, Date32Builder, Decimal128Builder, Int16Builder, Int32Builder, Int64Builder,
-    Int8Builder, StringBuilder, UInt16Builder, UInt32Builder, UInt64Builder, UInt8Builder,
-};
+use datafusion::arrow::array::{ArrayRef, Date32Builder, Decimal128Builder, Int16Builder, Int32Builder, Int64Builder, Int8Builder, StringBuilder, UInt16Builder, UInt32Builder, UInt64Builder, UInt8Builder};
 use datafusion::arrow::datatypes::DataType;
 use datafusion::arrow::datatypes::DataType::{Decimal128};
 use snafu::ResultExt;
@@ -34,7 +31,6 @@ where
         let s: String = row.try_get(index).context(TryGetSqlxRowSnafu{})?;
         arr.append_value(s);
     }
-
     Ok(Arc::new(arr.finish()))
 }
 
@@ -112,8 +108,8 @@ fn make_decimal_to_array_i128(
 }
 
 pub fn make_decimal128_type(
-    precision: Option<i32>,
-    scale: Option<i32>,
+    precision: Option<i64>,
+    scale: Option<i64>,
     default_precision: u8,
     default_scale: i8,
 ) -> DataType {
@@ -123,7 +119,22 @@ pub fn make_decimal128_type(
     };
     let s = match scale {
         None => default_scale,
-        Some(p) => p as i8,
+        Some(s) => s as i8,
     };
     Decimal128(p, s)
 }
+
+pub fn get_bool_from_str(
+    actual_word: &str,
+    expect_true: &str,
+    expect_false: &str,
+) -> crate::datasource::common::Result<bool> {
+    if actual_word == expect_true {
+        return Ok(true)
+    }
+    if actual_word == expect_false {
+        return Ok(false)
+    }
+    Err(UnexpectedMetaResult { detail: format!("The nullable field of the PG can only be yes or no, but the result obtained is:{}", actual_word) })
+}
+

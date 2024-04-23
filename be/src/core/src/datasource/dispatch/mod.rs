@@ -89,7 +89,11 @@ impl QueryDispatcher {
     ) -> Result<ReceiverStream<DatabaseItem>> {
         let accessor = self.get_accessor(config).await?;
 
-        accessor.get_all_schema_and_table().await
+        let stream = accessor.get_all_schema_and_table().await;
+
+        info!("Access list table and schemas finished");
+
+        stream
     }
 
     pub async fn get_table_detail(

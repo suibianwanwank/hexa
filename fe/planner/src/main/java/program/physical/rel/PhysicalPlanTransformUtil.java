@@ -4,7 +4,9 @@ import arrow.datafusion.protobuf.*;
 import com.ccsu.error.CommonException;
 import com.ccsu.meta.type.ArrowDataType;
 import com.ccsu.meta.type.arrow.ArrowTypeEnum;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
@@ -19,6 +21,7 @@ import org.apache.calcite.sql.SqlOperator;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.ccsu.error.CommonErrorCode.PLAN_TRANSFORM_ERROR;
@@ -113,11 +116,16 @@ public class PhysicalPlanTransformUtil {
                 return builder.setCast(castNode)
                         .build();
             }
+            case OR:
+            case AND:
+                return transformBinaryExpr((RexCall) rexNode);
             case OTHER: {
                 PhysicalScalarUdfNode function = transformFunction(rexNode);
                 return builder.setScalarUdf(function)
                         .build();
             }
+
+
             default:
                 if (rexNode.getKind().belongsTo(SqlKind.BINARY_COMPARISON)) {
                     return transformBinaryExpr((RexCall) rexNode);
@@ -168,37 +176,25 @@ public class PhysicalPlanTransformUtil {
         binary.setL(l);
         binary.setR(r);
 
-        switch (rexCall.getKind()) {
-            case EQUALS: {
-                binary.setOp("Eq");
-                break;
-            }
-            case GREATER_THAN: {
-                binary.setOp("Gt");
-                break;
-            }
-            case GREATER_THAN_OR_EQUAL: {
-                binary.setOp("GtEq");
-                break;
-            }
-            case LESS_THAN: {
-                binary.setOp("Lt");
-                break;
-            }
-            case LESS_THAN_OR_EQUAL: {
-                binary.setOp("LtEq");
-                break;
-            }
-            case NOT_EQUALS: {
-                binary.setOp("NotEq");
-                break;
-            }
-            default:
-                String errMsg = String.format("RexNode:%s can not be transformed", rexCall.getType());
-                throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
+        if (!BINARY_OP_MAP.containsKey(rexCall.getKind())) {
+            String errMsg = String.format("RexNode:%s can not be transformed", rexCall.getType());
+            throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
         }
+
+        binary.setOp(BINARY_OP_MAP.get(rexCall.getKind()));
         return PhysicalExprNode.newBuilder().setBinaryExpr(binary).build();
     }
+
+    private final static Map<SqlKind, String> BINARY_OP_MAP = ImmutableMap.of(
+            SqlKind.EQUALS, "Eq",
+            SqlKind.GREATER_THAN, "Gt",
+            SqlKind.GREATER_THAN_OR_EQUAL, "GtEq",
+            SqlKind.LESS_THAN, "Lt",
+            SqlKind.LESS_THAN_OR_EQUAL, "LtEq",
+            SqlKind.NOT_EQUALS, "NotEq",
+            SqlKind.AND, "And",
+            SqlKind.OR, "Or"
+    );
 
     public static PhysicalExprNode transformAggFunction(AggregateCall call, List<RelDataTypeField> fields) {
         PhysicalAggregateExprNode.Builder builder = PhysicalAggregateExprNode.newBuilder();
@@ -275,27 +271,31 @@ public class PhysicalPlanTransformUtil {
         return builder.build();
     }
 
-    public static JoinOn transformJoinOn(RexNode rexNode) {
+    public static JoinOn transformJoinOn(RexNode rexNode, RelNode left, RelNode right) {
         if (!rexNode.isA(SqlKind.EQUALS)) {
             String errMsg = String.format("RexNode:%s can't transformed Join On", rexNode);
             throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
         }
+
+        List<RelDataTypeField> leftFields = left.getRowType().getFieldList();
+        List<RelDataTypeField> rightFields = left.getRowType().getFieldList();
+
         RexCall call = (RexCall) rexNode;
-        RexNode left = call.getOperands().get(0);
-        RexNode right = call.getOperands().get(0);
-        if (!left.isA(SqlKind.INPUT_REF) || !right.isA(SqlKind.INPUT_REF)) {
+        RexNode lOp = call.getOperands().get(0);
+        RexNode rOp = call.getOperands().get(1);
+        if (!lOp.isA(SqlKind.INPUT_REF) || !rOp.isA(SqlKind.INPUT_REF)) {
             String errMsg = String.format("RexNode:%s can't transformed Join On", rexNode);
             throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
         }
-        RexInputRef leftInput = (RexInputRef) left;
-        RexInputRef rightInput = (RexInputRef) right;
+        int leftIndex = ((RexInputRef) lOp).getIndex();
+        int rightIndex = ((RexInputRef) rOp).getIndex() - leftFields.size();
         return JoinOn.newBuilder()
                 .setLeft(PhysicalExprNode.newBuilder().setColumn(PhysicalColumn.newBuilder()
-                        .setName(leftInput.getName())
-                        .setIndex(leftInput.getIndex())))
+                        .setName(leftFields.get(leftIndex).getName())
+                        .setIndex(leftIndex)))
                 .setRight(PhysicalExprNode.newBuilder().setColumn(PhysicalColumn.newBuilder()
-                        .setName(rightInput.getName())
-                        .setIndex(rightInput.getIndex())))
+                        .setName(rightFields.get(rightIndex).getName())
+                        .setIndex(rightIndex)))
                 .build();
     }
 
@@ -321,6 +321,22 @@ public class PhysicalPlanTransformUtil {
     }
 
     public static PhysicalScalarUdfNode transformFunction(RexNode node) {
+        if (node instanceof RexCall) {
+            SqlOperator operator = ((RexCall) node).getOperator();
+            List<PhysicalExprNode> args = Lists.newArrayList();
+            for (RexNode operand : ((RexCall) node).getOperands()) {
+                args.add(transformRexNodeToExprNode(operand));
+            }
+            return PhysicalScalarUdfNode.newBuilder()
+                    .setName(operator.getName())
+                    .addAllArgs(args)
+                    .build();
+        }
+        String errMsg = String.format("RexNode:%s can not be convert", node);
+        throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
+    }
+
+    public static PhysicalScalarUdfNode transformAnd(RexNode node) {
         if (node instanceof RexCall) {
             SqlOperator operator = ((RexCall) node).getOperator();
             List<PhysicalExprNode> args = Lists.newArrayList();
