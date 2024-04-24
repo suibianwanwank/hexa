@@ -1,7 +1,13 @@
 use crate::datasource::common::accessor::{Accessor, SqlxAccessor};
 use crate::datasource::common::meta::{ColumnDetail, DatabaseItem, SchemaDetail, TableDetail};
-use crate::datasource::common::utils::{get_bool_from_str, get_option_u32_from_row, get_str_from_row, make_date32_array_from_row, make_decimal128_array_from_row, make_decimal128_type, make_i16_array_from_row, make_i32_array_from_row, make_i64_array_from_row, make_i8_array_from_row, make_u16_array_from_row, make_u32_array_from_row, make_u64_array_from_row, make_u8_array_from_row, make_utf8_array_from_row};
-use crate::datasource::common::DatasourceCommonError::{NotSupportArrowType};
+use crate::datasource::common::utils::{
+    get_bool_from_str, get_option_u32_from_row, get_str_from_row, make_date32_array_from_row,
+    make_decimal128_array_from_row, make_decimal128_type, make_i16_array_from_row,
+    make_i32_array_from_row, make_i64_array_from_row, make_i8_array_from_row,
+    make_u16_array_from_row, make_u32_array_from_row, make_u64_array_from_row,
+    make_u8_array_from_row, make_utf8_array_from_row,
+};
+use crate::datasource::common::DatasourceCommonError::NotSupportArrowType;
 use crate::datasource::common::{MysqlAccessSourceSnafu, SendDatabaseItemStreamSnafu};
 use crate::datasource::common::{SqlxFetchAllSnafu, SqlxFetchOneSnafu};
 use crate::datasource::mysql::error::MysqlError::UnSupportDataType;
@@ -14,9 +20,10 @@ use datafusion_common::arrow::array::ArrayRef;
 use error::Result;
 use snafu::ResultExt;
 use sqlx::mysql::{MySqlConnectOptions, MySqlRow};
-use sqlx::Executor;
 use sqlx::{ConnectOptions, Database, MySql, MySqlConnection, Row};
+use sqlx::{Executor};
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::Sender;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::codegen::tokio_stream::StreamExt;
 use tracing::info;
@@ -186,62 +193,18 @@ impl Accessor for MysqlAccessor {
     async fn get_all_schema_and_table(
         &self,
     ) -> crate::datasource::common::Result<ReceiverStream<DatabaseItem>> {
-        let (tx, rx) = mpsc::channel(1000000);
+        let (tx, rx) = mpsc::channel(10000);
 
-        let mut conn = self.get_conn().await?;
-
-        let mut database_rows = sqlx::query("SHOW DATABASES").fetch(&mut conn);
-
-        while let Some(row) = database_rows
-            .try_next()
-            .await
-            .context(SqlxFetchAllSnafu {})?
-        {
-            // map the row into a user-defined domain type
-            let schema_name = get_str_from_row(&row, SCHEMA_NAME_FIELD)?;
-            info!("collect schema {} in connect :{}", schema_name, self.name);
-
-            // send schema info
-            let sd = SchemaDetail {
-                catalog_name: self.name.clone(),
-                schema_name: schema_name.clone(),
-            };
-
-            let _ = tx
-                .send(DatabaseItem::Schema(sd))
+        //TODO may we need a connection manager to optimize it
+        let conn1 = self.get_conn().await?;
+        let conn2 = self.get_conn().await?;
+        let catalog_name = self.name.clone();
+        tracing::log::info!("connect to pg data source Successful!");
+        tokio::spawn(async move {
+            get_database_item_and_send(tx, conn1, conn2, catalog_name)
                 .await
-                .context(SendDatabaseItemStreamSnafu {})?;
-
-            //do next
-
-            let sql = format!(
-                "select table_name from information_schema.tables where table_schema= '{}'",
-                schema_name.clone()
-            );
-
-            let mut conn1 = self.get_conn().await?;
-            let mut table_rows = sqlx::query(&sql).fetch(&mut conn1);
-
-            while let Some(row) = table_rows.try_next().await.context(SqlxFetchAllSnafu {})? {
-                // send table info
-                let table_name: String = get_str_from_row(&row, TABLE_NAME_FIELD)?;
-                info!(
-                    "collect table {}.{} in connect :{}",
-                    schema_name, table_name, self.name
-                );
-
-                let td = TableDetail::new_without_columns(
-                    self.name.clone(),
-                    schema_name.clone(),
-                    table_name,
-                );
-
-                let _ = tx
-                    .send(DatabaseItem::Table(td))
-                    .await
-                    .context(SendDatabaseItemStreamSnafu {})?;
-            }
-        }
+                .unwrap()
+        });
 
         Ok(ReceiverStream::new(rx))
     }
@@ -253,6 +216,67 @@ impl Accessor for MysqlAccessor {
     ) -> crate::datasource::common::Result<Vec<ArrayRef>> {
         execute_sqlx_query_to_array!(self, schema, sql)
     }
+}
+
+async fn get_database_item_and_send(
+    tx: Sender<DatabaseItem>,
+    mut conn1: MySqlConnection,
+    mut conn2: MySqlConnection,
+    catalog_name: String,
+) -> crate::datasource::common::Result<()> {
+    let mut database_rows = sqlx::query("SHOW DATABASES").fetch(&mut conn1);
+
+    while let Some(row) = database_rows
+        .try_next()
+        .await
+        .context(SqlxFetchAllSnafu {})?
+    {
+        // map the row into a user-defined domain type
+        let schema_name = get_str_from_row(&row, SCHEMA_NAME_FIELD)?;
+        info!(
+            "collect schema {} in connect :{}",
+            schema_name, catalog_name
+        );
+
+        // send schema info
+        let sd = SchemaDetail {
+            catalog_name: catalog_name.clone(),
+            schema_name: schema_name.clone(),
+        };
+
+        tx.send(DatabaseItem::Schema(sd))
+            .await
+            .context(SendDatabaseItemStreamSnafu {})?;
+
+        //do next
+
+        let sql = format!(
+            "select table_name from information_schema.tables where table_schema= '{}'",
+            schema_name.clone()
+        );
+
+        let mut table_rows = sqlx::query(&sql).fetch(&mut conn2);
+
+        while let Some(row) = table_rows.try_next().await.context(SqlxFetchAllSnafu {})? {
+            // send table info
+            let table_name: String = get_str_from_row(&row, TABLE_NAME_FIELD)?;
+            info!(
+                "collect table {}.{} in connect :{}",
+                schema_name, table_name, catalog_name
+            );
+
+            let td = TableDetail::new_without_columns(
+                catalog_name.clone(),
+                schema_name.clone(),
+                table_name,
+            );
+
+            tx.send(DatabaseItem::Table(td))
+                .await
+                .context(SendDatabaseItemStreamSnafu {})?;
+        }
+    }
+    Ok(())
 }
 
 const SCHEMA_NAME_FIELD: &str = "Database";

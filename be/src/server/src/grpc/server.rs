@@ -1,4 +1,3 @@
-use crate::grpc::GrpcError::{ChannelSend};
 use crate::grpc::{
     DatasourceConfigTryFromSnafu, ExecuteStreamSnafu, ExecutionPlanTryIntoSnafu,
     GetTableDetailSnafu, ListTableAndSchemasSnafu, TableInfoTryFromSnafu,
@@ -9,7 +8,7 @@ use datafusion::arrow::util::pretty::pretty_format_batches;
 use datafusion::execution::TaskContext;
 use datafusion::physical_plan::display::DisplayableExecutionPlan;
 use datafusion::physical_plan::{execute_stream, ExecutionPlan};
-use datafusion::prelude::{SessionContext};
+use datafusion::prelude::SessionContext;
 use hexa::datasource::dispatch::{DataSourceConfig, QueryDispatcher};
 use hexa_proto::physical_plan::{AsExecutionPlan, DefaultPhysicalExtensionCodec};
 use hexa_proto::protobuf::bridge_server::Bridge;
@@ -23,7 +22,7 @@ use tokio::sync::mpsc;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::codegen::tokio_stream::{Stream, StreamExt};
 use tonic::{Request, Response, Status};
-use tracing::{error, info, Level, span};
+use tracing::{error, info, span, Level};
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct BeConnectBridgeService {}
@@ -58,7 +57,6 @@ impl Bridge for BeConnectBridgeService {
 }
 
 impl BeConnectBridgeService {
-
     async fn inner_execute_query(
         &self,
         request: Request<PhysicalPlanNode>,
@@ -177,15 +175,23 @@ async fn stream_to_receiver<K, S, F, T>(
 where
     F: FnMut(T) -> S + Send + 'static,
     T: Send + 'static,
-    K: Stream<Item = T> + Unpin,
+    K: Stream<Item = T> + Unpin + Send + 'static,
+    S: Send + 'static
 {
-    let (tx, rx) = mpsc::channel(3000);
+    let (tx, rx) = mpsc::channel(1000000);
 
-    while let Some(item) = stream.next().await {
-        tx.send(map_fn(item)).await.map_err(|e| ChannelSend {
-            detail: e.to_string(),
-        })?;
-    }
+    tokio::spawn(async move {
+        while let Some(item) = stream.next().await {
+            match tx.send(map_fn(item)).await {
+                Ok(_) => {}
+                //TODO how to handler async error!
+                Err(_e) => {
+                    info!("Failed to send message");
+                }
+            };
+        }
+        info!("stream map finished!");
+    });
 
     Ok(ReceiverStream::new(rx))
 }

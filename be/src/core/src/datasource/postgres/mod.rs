@@ -8,7 +8,7 @@ use crate::datasource::common::utils::{
     make_i32_array_from_row, make_i64_array_from_row, make_i8_array_from_row,
     make_utf8_array_from_row,
 };
-use crate::datasource::common::DatasourceCommonError::{NotSupportArrowType};
+use crate::datasource::common::DatasourceCommonError::NotSupportArrowType;
 use crate::datasource::common::PostgresAccessSourceSnafu;
 use crate::datasource::common::SqlxFetchAllSnafu;
 use crate::datasource::postgres::error::PostgresError::UnSupportDataType;
@@ -23,6 +23,7 @@ use snafu::ResultExt;
 use sqlx::postgres::{PgConnectOptions, PgRow};
 use sqlx::{ConnectOptions, Database, Executor, PgConnection, Postgres, Row};
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::Sender;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::codegen::tokio_stream::StreamExt;
 use tracing::log::info;
@@ -158,67 +159,14 @@ impl Accessor for PostgresAccessor {
     async fn get_all_schema_and_table(
         &self,
     ) -> crate::datasource::common::Result<ReceiverStream<DatabaseItem>> {
-        let (tx, rx) = mpsc::channel(1000000);
+        let (tx, rx) = mpsc::channel(10000);
 
-        let mut conn = self.get_conn().await?;
-        let mut conn1 = self.get_conn().await?;
-
-        let mut database_rows =
-            sqlx::query("SELECT * FROM information_schema.schemata").fetch(&mut conn);
-
-        while let Some(row) = database_rows
-            .try_next()
-            .await
-            .context(SqlxFetchAllSnafu {})?
-        {
-            let schema_name: &str = row
-                .try_get(TABLE_SCHEMA_FIELD)
-                .context(SqlxFetchAllSnafu {})?;
-            tracing::info!("collect schema {} in connect :{}", schema_name, self.name);
-
-            let sd = SchemaDetail {
-                catalog_name: self.name.clone(),
-                schema_name: schema_name.into(),
-            };
-
-            let _ = tx
-                .send(DatabaseItem::Schema(sd))
-                .await
-                .context(crate::datasource::common::SendDatabaseItemStreamSnafu {})?;
-
-            //do next
-
-            let sql = format!(
-                "select table_name from information_schema.tables where table_schema= '{}'",
-                schema_name
-            );
-
-            let mut table_rows = sqlx::query(&sql).fetch(&mut conn1);
-
-            while let Some(row) = table_rows.try_next().await.context(SqlxFetchAllSnafu {})? {
-                // send table info
-                let table_name: &str = row
-                    .try_get(TABLE_NAME_FIELD)
-                    .context(SqlxFetchAllSnafu {})?;
-                tracing::info!(
-                    "collect table {}.{} in connect :{}",
-                    schema_name,
-                    table_name,
-                    self.name
-                );
-
-                let td = TableDetail::new_without_columns(
-                    self.name.clone(),
-                    schema_name.into(),
-                    table_name.to_string(),
-                );
-
-                let _ = tx
-                    .send(DatabaseItem::Table(td))
-                    .await
-                    .context(crate::datasource::common::SendDatabaseItemStreamSnafu {})?;
-            }
-        }
+        //TODO may we need a connection manager to optimize it
+        let conn1 = self.get_conn().await?;
+        let conn2 = self.get_conn().await?;
+        let catalog_name = self.name.clone();
+        info!("connect to pg data source Successful!");
+        tokio::spawn(async move { get_database_item_and_send(tx, conn1, conn2, catalog_name).await.unwrap() });
 
         Ok(ReceiverStream::new(rx))
     }
@@ -230,6 +178,73 @@ impl Accessor for PostgresAccessor {
     ) -> crate::datasource::common::Result<Vec<ArrayRef>> {
         execute_sqlx_query_to_array!(self, schema, sql)
     }
+}
+
+async fn get_database_item_and_send(
+    tx: Sender<DatabaseItem>,
+    mut conn1: PgConnection,
+    mut conn2: PgConnection,
+    catalog_name: String,
+) -> crate::datasource::common::Result<()> {
+    info!("Start to collect pg");
+
+    let mut database_rows =
+        sqlx::query("SELECT * FROM information_schema.schemata").fetch(&mut conn1);
+
+    while let Some(row) = database_rows
+        .try_next()
+        .await
+        .context(SqlxFetchAllSnafu {})?
+    {
+        let schema_name = get_str_from_row(&row, TABLE_SCHEMA_FIELD)?;
+        tracing::info!(
+            "collect schema {} in connect :{}",
+            &schema_name,
+            catalog_name
+        );
+
+        let sd = SchemaDetail {
+            catalog_name: catalog_name.clone(),
+            schema_name: schema_name.clone(),
+        };
+
+        let _ = tx
+            .send(DatabaseItem::Schema(sd))
+            .await
+            .context(crate::datasource::common::SendDatabaseItemStreamSnafu {});
+
+        //do next
+
+        let sql = format!(
+            "select table_name from information_schema.tables where table_schema= '{}'",
+            &schema_name
+        );
+
+        let mut table_rows = sqlx::query(&sql).fetch(&mut conn2);
+
+        while let Some(row) = table_rows.try_next().await.context(SqlxFetchAllSnafu {})? {
+            // send table info
+            let table_name = get_str_from_row(&row, TABLE_NAME_FIELD)?;
+            tracing::info!(
+                "collect table {}.{} in connect :{}",
+                &schema_name,
+                &table_name,
+                catalog_name
+            );
+
+            let td = TableDetail::new_without_columns(
+                catalog_name.clone(),
+                schema_name.clone(),
+                table_name.to_string(),
+            );
+
+            tx.send(DatabaseItem::Table(td))
+                .await
+                .context(crate::datasource::common::SendDatabaseItemStreamSnafu {})?;
+        }
+    }
+
+    Ok(())
 }
 
 impl_row_to_array!(pg_row_to_array, PgRow, [
