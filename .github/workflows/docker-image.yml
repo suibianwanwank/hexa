@@ -7,12 +7,60 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-  build:
-
+  build_backend:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - name: read code
+        uses: actions/checkout@v4
+
+      - name: login docker hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_NAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+      - name: read code
+        uses: actions/checkout@v4
       - name: Build the Docker image
-        run: docker build -t hexa .
+        run: docker build -t suibianwanwan333/hexa-fe:v1.0.0 -f ./fe/Dockerfile ../ && docker push suibianwanwan333/hexa-fe:v1.0.0
+
+
+#      - name: push docker
+#        uses: docker/build-push-action@v5
+#        with:
+#          push: true
+#          tags: suibianwanwan333/hexa-fe:v1.0.0
+#          dockerfile: ./fe/Dockerfile
+#          context: ../
+
+
+#  build_frontend:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout frontend repository
+#        uses: actions/checkout@v4
+#        with:
+#          repository: <frontend_repository_url>  # 替换为你的前端子项目的仓库 URL
+#          path: frontend  # 指定将前端子项目克隆到的目录
+#
+#      - name: Build and push frontend Docker image
+#        run: |
+#          cd frontend
+#          docker build -t suibianwanwan333/frontend .
+#          docker login -u ${{ secrets.DOCKER_HUB_NAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
+#          docker push suibianwanwan333/frontend:v1.0.0  # 修改标签为适合你的需求
+#
+#  build_database:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout database repository
+#        uses: actions/checkout@v4
+#        with:
+#          repository: <database_repository_url>  # 替换为你的数据库子项目的仓库 URL
+#          path: database  # 指定将数据库子项目克隆到的目录
+#
+#      - name: Build and push database Docker image
+#        run: |
+#          cd database
+#          docker build -t suibianwanwan333/database .
+#          docker login -u ${{ secrets.DOCKER_HUB_NAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
+#          docker push suibianwanwan333/database:v1.0.0  # 修改标签为适合你的需求

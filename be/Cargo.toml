@@ -19,9 +19,6 @@ async-trait = "0.1.78"
 snafu = "0.8.0"
 
 sqlx = "0.7.4"
-# Wait for the sqlx rusqlite version to be upgraded to 0.28.0 and upgrade that version. Otherwise there will be a version conflict
-rustyline = "13.0.0"
-
 hexa = { path = "src/core", version = "0.1.0" }
 hexa-proto = { path = "src/proto", version = "0.1.0" }
 hexa-common = { path = "src/common", version = "0.1.0" }

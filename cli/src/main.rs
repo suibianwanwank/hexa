@@ -1,6 +1,6 @@
+mod generated;
+
 use clap::Parser;
-use hexa_proto::protobuf::cli_bridge_client::CliBridgeClient;
-use hexa_proto::protobuf::SqlJobRequest;
 use owo_colors::OwoColorize;
 use rustyline::completion::FilenameCompleter;
 use rustyline::error::ReadlineError;
@@ -20,6 +20,8 @@ use tonic::codegen::tokio_stream::StreamExt;
 use tonic::transport::Channel;
 use tonic::{transport, Status};
 use tracing::info;
+use crate::generated::proto::cli_bridge_client::CliBridgeClient;
+use crate::generated::proto::SqlJobRequest;
 
 #[derive(Parser)]
 #[clap(name = "Hexa-Cli")]

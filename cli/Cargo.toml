@@ -1,0 +1,19 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+rustyline = { version = "14.0.0", features = ["rusqlite", "with-sqlite-history", "derive"] }
+snafu = "0.8.0"
+tonic = "0.11.0"
+tracing = "0.1.40"
+owo-colors = "3"
+tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+prost = "0.12.3"
+
+[build-dependencies]
+tonic-build = "0.11.0"

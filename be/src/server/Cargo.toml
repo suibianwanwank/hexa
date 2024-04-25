@@ -14,8 +14,6 @@ hexa = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 
-rustyline = { workspace = true, features = ["rusqlite", "with-sqlite-history", "derive"] }
-
 tonic = { workspace = true }
 datafusion = { workspace = true }
 arrow-flight = { workspace = true }
@@ -25,13 +23,6 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 
-owo-colors = "3"
-
-
 [[bin]]
 name = "hexa-be-server"
 path = "src/bin/main.rs"
-
-[[bin]]
-name = "hexa-cli"
-path = "src/bin/cli.rs"
