@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build_backend:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: read code
@@ -24,35 +24,5 @@ jobs:
       - name: build and push hexa-be
         run: docker build -t suibianwanwan333/hexa-be:v1.0.0 -f ./be/Dockerfile ../ && docker push suibianwanwan333/hexa-be:v1.0.0
 
-
-#  build_frontend:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout frontend repository
-#        uses: actions/checkout@v4
-#        with:
-#          repository: <frontend_repository_url>  # 替换为你的前端子项目的仓库 URL
-#          path: frontend  # 指定将前端子项目克隆到的目录
-#
-#      - name: Build and push frontend Docker image
-#        run: |
-#          cd frontend
-#          docker build -t suibianwanwan333/frontend .
-#          docker login -u ${{ secrets.DOCKER_HUB_NAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
-#          docker push suibianwanwan333/frontend:v1.0.0  # 修改标签为适合你的需求
-#
-#  build_database:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout database repository
-#        uses: actions/checkout@v4
-#        with:
-#          repository: <database_repository_url>  # 替换为你的数据库子项目的仓库 URL
-#          path: database  # 指定将数据库子项目克隆到的目录
-#
-#      - name: Build and push database Docker image
-#        run: |
-#          cd database
-#          docker build -t suibianwanwan333/database .
-#          docker login -u ${{ secrets.DOCKER_HUB_NAME }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
-#          docker push suibianwanwan333/database:v1.0.0  # 修改标签为适合你的需求
+      - name: build and push hexa-cli
+        run: docker build -t suibianwanwan333/hexa-cli:v1.0.0 -f ./cli/Dockerfile ../ && docker push suibianwanwan333/hexa-cli:v1.0.0
