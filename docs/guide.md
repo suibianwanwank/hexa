@@ -43,3 +43,25 @@ you need to specify the url and database of mongodb as the project datastore in 
 > datastore.mongodb.uri = mongodb://username:password@host:port/?authSource=admin&
 > 
 > datastore.mongodb.db = hexa
+
+
+## Usage
+Create first catalog named 'pg'
+```sql
+// create a postgresql type catalog named 'pg'
+create catalog POSTGRESQL as pg with {sourceType: POSTGRESQL,  host:127.0.0.1, port: 5432, username:root,  password:suibianwanwan, database: postgres};
+```
+Show create sql with new catalog 'pg'
+```sql
+show create catalog pg
+```
+Show metadata
+```sql
+show schemas from pg
+show tables from pg.tpcds
+show columns from pg.tpcds.store
+```
+Execute a simple query
+```sql
+select * from pg.tpcds.store;
+```
