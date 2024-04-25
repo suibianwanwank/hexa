@@ -12,21 +12,17 @@ Learn more: [Blog to Hexa]()
 * **SQL synatx:** Support for easy-to-use SQL DDL syntax and traditional SQL query syntax.
 * **Cli:** Smart synatx hints, highlighting keyword.
 
-## Getting Started
-#### Docker
-```docker
-Todo
-```
 
-
-#### Demo
+## Demo
+show some basic syntax and cli usage
  <p align="left">
     <img src="https://suibianwanwan.oss-cn-hangzhou.aliyuncs.com/hexa.gif">
    </a>
 </p>
 
+## Getting Started
+See [Guide](docs/guide.md)
 
-<br>
 
 ## Architecture Overview
 
