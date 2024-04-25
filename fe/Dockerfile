@@ -4,9 +4,6 @@ COPY . .
 
 WORKDIR /hexa/fe
 
-RUN ls
-RUN pwd
-
 RUN chmod +x ./package.sh
 RUN ./package.sh
 

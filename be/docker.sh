@@ -11,17 +11,4 @@ protoc --version
 
 cd /hexa/fe
 
-## download mvn
-#sudo apt update
-#
-#sudo apt-get install openjdk-8-jdk
-#sudo apt-get install maven
-#
-#java -version
-#mvn -version
-#
-#mvn clean install
-
-cd /hexa/be
-
-cargo build --bin --release
+cargo build --bin hexa-be1 --release
