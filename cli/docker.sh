@@ -9,6 +9,6 @@ export PATH="$PWD/protoc/bin:$PATH"
 
 protoc --version
 
-cd /hexa/be
+cd /hexa/cli
 
-cargo build --bin hexa-be --release
+cargo build --release
