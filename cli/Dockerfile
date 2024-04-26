@@ -1,4 +1,4 @@
-FROM rust:1.75-bookworm AS be
+FROM rust:1.75-bookworm AS builder
 
 COPY . .
 
@@ -13,7 +13,10 @@ FROM debian:bookworm-slim
 
 
 # Copy in built stuff.
-COPY --from=be /hexa/cli/target/release/cli /cli
+COPY --from=builder /hexa/cli/target/release/cli /cli
+COPY --from=builder /hexa/cli/start.sh /
+
+RUN chmod +x ./start.sh
 
 CMD ["./start.sh"]
 

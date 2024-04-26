@@ -14,6 +14,9 @@ FROM debian:bookworm-slim
 
 # Copy in built stuff.
 COPY --from=be /hexa/be/target/release/hexa-be /be
+COPY --from=be /hexa/be/start.sh /
+
+RUN chmod +x ./start.sh
 
 EXPOSE 8888
 
