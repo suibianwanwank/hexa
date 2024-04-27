@@ -156,12 +156,6 @@ fn complete_keyword(line: &str) -> Option<String> {
         }
     }
     None
-
-    // SQL_KEYWORDS
-    //     .iter()
-    //     .filter(|&keyword| keyword.starts_with(&line))
-    //     .map(|&keyword| keyword[line.len()..].to_owned())
-    //     .next()
 }
 
 struct SqlCliHinter;
@@ -196,7 +190,6 @@ impl Hinter for SqlCliHinter {
             }
             return Some(sr.entry[line.len()..].to_owned());
         }
-
         None
     }
 }

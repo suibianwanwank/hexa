@@ -4,25 +4,44 @@ This tutorial covers:
 * How developers compile and run project
 * A simple example to register data and complete a query
 ## Docker
->docker pull
+Fe
+```shell
+docker pull suibianwanwan333/hexa-fe:@v1.0.0
 
+#Configuration items can be viewed /fe/etc/config.properties
+docker cp CONFIG_FILE/config.properties  CONTAINER_ID:/fe/etc/config.properties
+
+docker run -d -p 9065:9065 suibianwanwan333/hexa-fe:v1.0.0
+```
+
+Be
+```shell
+docker pull suibianwanwan333/hexa-be:@v1.0.0
+
+# mapping port 
+docker run -d -p 8888:8888 suibianwanwan333/hexa-be:v1.0.0
+```
 
 ## Compiling projects
 Fe, Be, and Cli are three separate components connected by grpc communication, so you can compile or start a project individually
 
 Now let's download the program
->git clone https://github.com/suibianwanwank/hexa.git
+```terminal
+git clone https://github.com/suibianwanwank/hexa.git
+```
 #### BackEnd
 backend is a rust project, First make sure you have the rust environment installed
-> cd ./be
-> 
-> cargo build
->
-After completing the compilation, Launching of the project
-> cd target/debug
-> 
-> ./hexa-be
+```shell
+cd ./be
 
+cargo build
+```
+After completing the compilation, Launching of the project
+```shell
+cd target/debug
+
+./hexa-be
+```
 You can check out --help for more startup configurations
 
 #### Cli
@@ -30,19 +49,25 @@ Same rust project, similar to BE approach
 
 #### FrontEnd
 Frontend is a java project, again, you need to make sure you have java8 and maven installed.
-> cd ./fe
->
-> mvn clean install
+```shell
+cd ./fe
+
+mvn clean install
+```
 
 After the compilation is complete, you need to add the vm option to specify the path to the configuration file
-> -Dconfig=fe/main/src/main/resources/config.properties
+```shell
+-Dconfig=fe/main/src/main/resources/config.properties
+```
 
 The default configuration path is as above,In addition, the rocksdb storage code is now deprecated, 
 you need to specify the url and database of mongodb as the project datastore in the configuration file
+```shell
+datastore.mongodb.uri = mongodb://username:password@host:port/?authSource=admin&
 
-> datastore.mongodb.uri = mongodb://username:password@host:port/?authSource=admin&
-> 
-> datastore.mongodb.db = hexa
+datastore.mongodb.db = hexa
+```
+
 
 
 ## Usage
