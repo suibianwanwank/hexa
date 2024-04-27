@@ -48,3 +48,5 @@ build/
 
 **/src/generated/*
 !**/src/generated/mod.rs
+
+proto/proto_descriptor.bin

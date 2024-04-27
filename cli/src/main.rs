@@ -188,10 +188,10 @@ impl Hinter for SqlCliHinter {
 
         if let Some(sr) = ctx
             .history()
-            .starts_with(line, start, SearchDirection::Reverse)
+            .starts_with(line, 0, SearchDirection::Reverse)
             .unwrap_or(None)
         {
-            if sr.entry == line {
+            if sr.entry == line || sr.entry.len() <= line.len() {
                 return None;
             }
             return Some(sr.entry[line.len()..].to_owned());

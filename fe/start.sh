@@ -1,2 +1,4 @@
-cd /hexa-fe/lib
-java -Dconfig=/hexa-fe/etc/config.properties -cp * com.ccsu.server.Launcher
+#!/bin/bash
+
+cd /fe/lib
+java -Dconfig=/fe/etc/config.properties -cp * com.ccsu.server.Launcher

@@ -19,10 +19,10 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_NAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
       - name: build and push hexa-fe
-        run: docker build -t suibianwanwan333/hexa-fe:v1.0.0 -f ./fe/Dockerfile ../ && docker push suibianwanwan333/hexa-fe:v1.0.0
+        run: docker build -t suibianwanwan333/hexa-fe:v1.0.0 -f ./fe/Dockerfile . && docker push suibianwanwan333/hexa-fe:v1.0.0
 
       - name: build and push hexa-be
-        run: docker build -t suibianwanwan333/hexa-be:v1.0.0 -f ./be/Dockerfile ../ && docker push suibianwanwan333/hexa-be:v1.0.0
+        run: docker build -t suibianwanwan333/hexa-be:v1.0.0 -f ./be/Dockerfile . && docker push suibianwanwan333/hexa-be:v1.0.0
 
       - name: build and push hexa-cli
-        run: docker build -t suibianwanwan333/hexa-cli:v1.0.0 -f ./cli/Dockerfile ../ && docker push suibianwanwan333/hexa-cli:v1.0.0
+        run: docker build -t suibianwanwan333/hexa-cli:v1.0.0 -f ./cli/Dockerfile . && docker push suibianwanwan333/hexa-cli:v1.0.0

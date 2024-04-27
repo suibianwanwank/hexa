@@ -9,6 +9,6 @@ export PATH="$PWD/protoc/bin:$PATH"
 
 protoc --version
 
-cd /hexa/cli
+cd /cli
 
 cargo build --release
