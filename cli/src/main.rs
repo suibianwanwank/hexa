@@ -1,17 +1,19 @@
 mod generated;
 
+use crate::generated::proto::cli_bridge_client::CliBridgeClient;
+use crate::generated::proto::SqlJobRequest;
 use clap::Parser;
 use owo_colors::OwoColorize;
-use rustyline::completion::FilenameCompleter;
+use rustyline::completion::Completer;
 use rustyline::error::ReadlineError;
 use rustyline::highlight::Highlighter;
 use rustyline::highlight::MatchingBracketHighlighter;
 use rustyline::hint::Hinter;
 use rustyline::history::SearchDirection;
 use rustyline::validate::MatchingBracketValidator;
+use rustyline::CompletionType::List;
 use rustyline::{
-    Completer, CompletionType, Config, Context, EditMode, Editor, Helper, Hinter,
-    Validator,
+    Completer, CompletionType, Config, Context, EditMode, Editor, Helper, Hinter, Validator,
 };
 use snafu::{ResultExt, Snafu};
 use std::borrow::Cow;
@@ -20,8 +22,6 @@ use tonic::codegen::tokio_stream::StreamExt;
 use tonic::transport::Channel;
 use tonic::{transport, Status};
 use tracing::info;
-use crate::generated::proto::cli_bridge_client::CliBridgeClient;
-use crate::generated::proto::SqlJobRequest;
 
 #[derive(Parser)]
 #[clap(name = "Hexa-Cli")]
@@ -53,6 +53,7 @@ async fn run_cli_application(mut client: CliBridgeClient<Channel>) -> Result<()>
         .auto_add_history(true)
         .completion_type(CompletionType::List)
         .edit_mode(EditMode::Emacs)
+        .completion_type(List)
         .build();
 
     let history = rustyline::sqlite_history::SQLiteHistory::open(config, "history.sqlite3")
@@ -90,7 +91,6 @@ async fn run_cli_application(mut client: CliBridgeClient<Channel>) -> Result<()>
         }
     }
     Ok(())
-    // rl.append_history("history.txt").map_err(return_cli_error)
 }
 
 async fn create_grpc_client(bind: String) -> Result<CliBridgeClient<Channel>> {
@@ -157,7 +157,6 @@ fn complete_keyword(line: &str) -> Option<String> {
     }
     None
 }
-
 struct SqlCliHinter;
 
 impl Hinter for SqlCliHinter {
@@ -172,13 +171,6 @@ impl Hinter for SqlCliHinter {
         if let Some(completion) = complete_keyword(line) {
             return Some(completion);
         }
-
-        // completion based on history
-        let start = if ctx.history_index() == ctx.history().len() {
-            ctx.history_index().saturating_sub(1)
-        } else {
-            ctx.history_index()
-        };
 
         if let Some(sr) = ctx
             .history()
@@ -197,7 +189,7 @@ impl Hinter for SqlCliHinter {
 #[derive(Helper, Completer, Validator, Hinter)]
 struct SqlCliHelper {
     #[rustyline(Completer)]
-    completer: FilenameCompleter,
+    completer: HintCompleter,
     highlighter: MatchingBracketHighlighter,
     #[rustyline(Validator)]
     validator: MatchingBracketValidator,
@@ -206,10 +198,40 @@ struct SqlCliHelper {
     colored_prompt: String,
 }
 
+struct HintCompleter {}
+
+impl Completer for HintCompleter {
+    type Candidate = String;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        _ctx: &Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<String>)> {
+        let mut res: Vec<String> = Vec::new();
+        if line.is_empty() || pos < line.len() || line.ends_with(';') || line.ends_with(' ') {
+            return Ok((0, res));
+        }
+
+        let mut index = 0;
+        if let Some(pre) = line.split_whitespace().last() {
+            index = line.len() - pre.len();
+            for &item in SQL_KEYWORDS {
+                if !item.starts_with(pre) || item.eq(pre) {
+                    continue;
+                }
+                res.push(item.to_string());
+            }
+        }
+        Ok((index, res))
+    }
+}
+
 impl SqlCliHelper {
     pub fn new() -> Self {
         SqlCliHelper {
-            completer: FilenameCompleter::new(),
+            completer: HintCompleter {},
             highlighter: MatchingBracketHighlighter::new(),
             colored_prompt: PROMPT.bright_green().to_string(),
             hinter: SqlCliHinter {},
