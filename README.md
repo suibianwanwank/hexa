@@ -1,5 +1,5 @@
 # Hexa
-<img src="https://img.shields.io/badge/Made%20with-JAVA%20%26%20C%2B%2B-red" alt="JAVA&RUST"><br>
+<img src="https://img.shields.io/badge/Made%20with-JAVA&RUST-red" alt="JAVA & RUST"><br>
 Hexa is an open source OLAP database that supports cross-origin queries by connecting data instead of ETL <br>
 
 Learn more: [Blog to Hexa]()
