@@ -10,10 +10,11 @@ use rustyline::highlight::Highlighter;
 use rustyline::highlight::MatchingBracketHighlighter;
 use rustyline::hint::Hinter;
 use rustyline::history::SearchDirection;
-use rustyline::validate::MatchingBracketValidator;
+use rustyline::validate::{ValidationContext, ValidationResult};
 use rustyline::CompletionType::List;
+use rustyline::validate::Validator;
 use rustyline::{
-    Completer, CompletionType, Config, Context, EditMode, Editor, Helper, Hinter, Validator,
+    Completer, CompletionType, Config, Context, EditMode, Editor, Helper, Hinter,
 };
 use snafu::{ResultExt, Snafu};
 use std::borrow::Cow;
@@ -186,16 +187,24 @@ impl Hinter for SqlCliHinter {
     }
 }
 
-#[derive(Helper, Completer, Validator, Hinter)]
+#[derive(Helper, Completer, Hinter)]
 struct SqlCliHelper {
     #[rustyline(Completer)]
     completer: HintCompleter,
     highlighter: MatchingBracketHighlighter,
-    #[rustyline(Validator)]
-    validator: MatchingBracketValidator,
+    // #[rustyline(Validator)]
+    // validator: MatchingBracketValidator,
     #[rustyline(Hinter)]
     hinter: SqlCliHinter,
     colored_prompt: String,
+}
+
+
+impl Validator for SqlCliHelper {
+    fn validate(&self, ctx: &mut ValidationContext<'_>) -> rustyline::Result<ValidationResult> {
+        let input = ctx.input().trim_end();
+        self.validate_input(input)
+    }
 }
 
 struct HintCompleter {}
@@ -234,7 +243,18 @@ impl SqlCliHelper {
             highlighter: MatchingBracketHighlighter::new(),
             colored_prompt: PROMPT.bright_green().to_string(),
             hinter: SqlCliHinter {},
-            validator: MatchingBracketValidator::new(),
+            // validator: MatchingBracketValidator::new(),
+        }
+    }
+
+    fn validate_input(&self, input: &str) -> rustyline::Result<ValidationResult> {
+        if let Some(_sql) = input.strip_suffix(';') {
+            Ok(ValidationResult::Valid(None))
+        } else if input.starts_with('\\') {
+            // command
+            Ok(ValidationResult::Valid(None))
+        } else {
+            Ok(ValidationResult::Incomplete)
         }
     }
 }
