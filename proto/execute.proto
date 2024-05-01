@@ -3,43 +3,63 @@ syntax = "proto3";
 package execute;
 
 option java_multiple_files = true;
-option java_package = "arrow.datafusion.protobuf";
-option java_outer_classname = "ExtendPlan";
+option java_package = "proto.execute";
 
 import "datafusion.proto";
 
 service Bridge {
 
-  rpc executeQuery (datafusion.PhysicalPlanNode) returns (stream RowDisplayResult);
+  rpc executeQuery (ExecQueryRequest) returns (stream ExecQueryResponse);
 
   rpc listTablesInCatalog(ListTablesRequest) returns (stream ListTablesResponse);
 
   rpc getTableDetail(GetTableRequest) returns (TableInfo);
 }
 
+message ExecQueryRequest{
+  RequestHeader header =1;
+  datafusion.PhysicalPlanNode node = 2;
+}
+
 message ListTablesRequest {
+  RequestHeader header = 1;
   datafusion.SourceScanConfig config = 2;
 }
 
 message GetTableRequest{
+  RequestHeader header =1;
   string schemaName = 2;
   string tableName = 3;
   datafusion.SourceScanConfig config = 4;
 }
 
 
-message IpcMessage {
-  bytes header = 1;
-  bytes data = 2;
+message ExecQueryResponse{
+  oneof data{
+    bytes query_result = 1;
+    QueryProfile profile = 2;
+  }
+
 }
 
-message RowDisplayResult{
-  bytes data = 1;
+message QueryProfile{
+
+}
+
+message ListTablesResponse {
+  oneof info{
+    SchemaInfo schemaInfo = 1;
+    TableInfo tableInfo = 2;
+  }
+}
+
+message RequestHeader{
+  string job_id = 1;
 }
 
 message SchemaInfo{
-  string catalogName = 1;
-  string schemaName = 2;
+  string catalog_name = 1;
+  string schema_name = 2;
 }
 
 message TableInfo{
@@ -55,12 +75,3 @@ message FieldInfo {
   datafusion.ArrowType typeName = 2;
   bool nullable = 3;
 }
-
-message ListTablesResponse {
-  oneof info{
-    SchemaInfo schemaInfo = 1;
-    TableInfo tableInfo = 2;
-  }
-}
-
-

@@ -1,10 +1,10 @@
 package handler;
 
-import arrow.datafusion.protobuf.PhysicalPlanNode;
+
 import com.ccsu.Result;
 
-public class QueryPlanResult implements Result<PhysicalPlanNode> {
-    private PhysicalPlanNode physicalPlan;
+public class QueryPlanResult implements Result<proto.datafusion.PhysicalPlanNode> {
+    private proto.datafusion.PhysicalPlanNode physicalPlan;
     private String errMsg;
     private boolean isSuccess;
 
@@ -18,7 +18,7 @@ public class QueryPlanResult implements Result<PhysicalPlanNode> {
         return result;
     }
 
-    public static QueryPlanResult success(PhysicalPlanNode node) {
+    public static QueryPlanResult success(proto.datafusion.PhysicalPlanNode node) {
         QueryPlanResult result = new QueryPlanResult();
         result.isSuccess = true;
         result.physicalPlan = node;
@@ -31,7 +31,7 @@ public class QueryPlanResult implements Result<PhysicalPlanNode> {
     }
 
     @Override
-    public PhysicalPlanNode getResult() {
+    public proto.datafusion.PhysicalPlanNode getResult() {
         return physicalPlan;
     }
 

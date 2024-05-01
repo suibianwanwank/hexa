@@ -1,15 +1,17 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.*;
-import org.apache.calcite.adapter.enumerable.EnumerableFilter;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import proto.datafusion.HashJoinExecNode;
 
+import java.util.List;
 import java.util.Set;
 
 import static program.physical.rel.PhysicalPlanTransformUtil.*;
@@ -29,23 +31,31 @@ public class ExtendEnumerableHashJoin extends EnumerableHashJoin implements Phys
     }
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
-        PhysicalPlanNode.Builder builder = PhysicalPlanNode.newBuilder();
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
 
-        PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToDataFusionNode();
-        PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToDataFusionNode();
-        JoinType joinType = transformJoinType(getJoinType());
+        proto.datafusion.PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToDataFusionNode();
+        proto.datafusion.JoinType joinType = transformJoinType(getJoinType());
 
-        RexNode condition = getCondition();
+        List<RexNode> conjunctions = RelOptUtil.conjunctions(getCondition());
 
-        JoinOn joinOn = transformJoinOn(condition, getLeft(), getRight());
-        HashJoinExecNode.Builder hashJoin = HashJoinExecNode.newBuilder()
-                .setLeft(leftNode)
+        HashJoinExecNode.Builder hashJoin = HashJoinExecNode.newBuilder();
+
+        for (RexNode conjunction : conjunctions) {
+            proto.datafusion.JoinOn joinOn = transformJoinOn(conjunction, getLeft(), getRight());
+            hashJoin.addOn(joinOn);
+        }
+
+        hashJoin.setLeft(leftNode)
                 .setRight(rightNode)
                 .setJoinType(joinType)
-                .addOn(joinOn)
                 .setNullEqualsNull(false);
+        return proto.datafusion.PhysicalPlanNode.newBuilder().setHashJoin(hashJoin).build();
+    }
 
-        return builder.setHashJoin(hashJoin).build();
+    @Override
+    public EnumerableHashJoin copy(RelTraitSet traitSet, RexNode condition, RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
+        return new ExtendEnumerableHashJoin(getCluster(), traitSet, left, right,
+                condition, variablesSet, joinType);
     }
 }

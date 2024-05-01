@@ -1,17 +1,6 @@
 package com.ccsu.serialize;
 
-import com.ccsu.error.CommonErrorCode;
-import com.ccsu.error.CommonException;
 import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
 /**
  * Gson based json serialization deserialization utility class.

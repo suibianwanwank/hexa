@@ -23,6 +23,8 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 
+comfy-table = "7.1.0"
+
 [[bin]]
 name = "hexa-be"
 path = "src/bin/be.rs"

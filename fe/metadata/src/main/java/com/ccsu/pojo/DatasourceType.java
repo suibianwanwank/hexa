@@ -1,6 +1,6 @@
 package com.ccsu.pojo;
 
-import arrow.datafusion.protobuf.SourceType;
+import proto.datafusion.SourceType;
 import com.ccsu.error.CommonErrorCode;
 import com.ccsu.error.CommonException;
 

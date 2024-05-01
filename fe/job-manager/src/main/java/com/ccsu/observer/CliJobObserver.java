@@ -3,8 +3,8 @@ package com.ccsu.observer;
 import com.ccsu.error.CommonErrorCode;
 import com.ccsu.error.CommonException;
 import io.grpc.stub.StreamObserver;
-import job.CliDisplayResponse;
 import observer.SqlJobObserver;
+import proto.cli.CliDisplayResponse;
 
 public class CliJobObserver implements SqlJobObserver {
 

@@ -1,8 +1,5 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.PhysicalExtensionNode;
-import arrow.datafusion.protobuf.PhysicalPlanNode;
-import arrow.datafusion.protobuf.SortMergeJoinExecNode;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -38,16 +35,16 @@ public class ExtendEnumerableMergeJoin
 
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
-        SortMergeJoinExecNode mergeJoinExecNode = SortMergeJoinExecNode.newBuilder()
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
+        proto.datafusion.SortMergeJoinExecNode mergeJoinExecNode = proto.datafusion.SortMergeJoinExecNode.newBuilder()
                 .setLeft(((PhysicalPlan) getLeft()).transformToDataFusionNode())
                 .setRight(((PhysicalPlan) getRight()).transformToDataFusionNode())
                 .setNullEqualsNull(false)
                 .setJoinType(transformJoinType(getJoinType()))
                 .addOn(transformJoinOn(getCondition(), getLeft(), getRight()))
                 .build();
-        return PhysicalPlanNode.newBuilder()
-                .setExtension(PhysicalExtensionNode.newBuilder()
+        return proto.datafusion.PhysicalPlanNode.newBuilder()
+                .setExtension(proto.datafusion.PhysicalExtensionNode.newBuilder()
                         .setNode(mergeJoinExecNode.toByteString()))
                 .build();
     }

@@ -6,13 +6,10 @@ import com.ccsu.meta.data.MetaIdentifier;
 import com.ccsu.meta.data.MetaPath;
 import com.ccsu.parser.sqlnode.SqlCreateCatalog;
 import com.ccsu.parser.sqlnode.SqlKvEntry;
-import com.ccsu.parser.sqlnode.SqlShowColumns;
 import com.ccsu.pojo.DatasourceConfig;
 import com.ccsu.pojo.DatasourceType;
 import context.QueryContext;
 import org.apache.calcite.sql.SqlNode;
-
-import java.util.Locale;
 
 public class CreateCatalogHandler implements SqlHandler<Void, SqlCreateCatalog, QueryContext> {
 

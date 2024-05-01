@@ -1,7 +1,5 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.PhysicalPlanNode;
-import arrow.datafusion.protobuf.SortExecNode;
 import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -10,6 +8,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import proto.datafusion.PhysicalExprNode;
+import proto.datafusion.PhysicalSortExprNode;
 
 import static program.physical.rel.PhysicalPlanTransformUtil.transformRexNodeToExprNode;
 
@@ -44,18 +44,22 @@ public class ExtendEnumerableSort
     }
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
         long fetchValue = -1;
         if (fetch instanceof RexLiteral) {
             fetchValue = RexLiteral.intValue(fetch);
         }
-        SortExecNode.Builder sortExecNode = SortExecNode.newBuilder()
+        proto.datafusion.SortExecNode.Builder sortExecNode = proto.datafusion.SortExecNode.newBuilder()
                 .setInput(((PhysicalPlan) getInput()).transformToDataFusionNode())
                 .setFetch(fetchValue);
         for (RexNode sortExp : getSortExps()) {
-            sortExecNode.addExpr(transformRexNodeToExprNode(sortExp));
+            PhysicalSortExprNode.Builder expr = PhysicalSortExprNode.newBuilder()
+                    .setAsc(true)
+                    .setExpr(transformRexNodeToExprNode(sortExp))
+                    .setNullsFirst(false);
+            sortExecNode.addExpr(PhysicalExprNode.newBuilder().setSort(expr));
         }
-        return PhysicalPlanNode.newBuilder().setSort(sortExecNode).build();
+        return proto.datafusion.PhysicalPlanNode.newBuilder().setSort(sortExecNode).build();
     }
 
     @Override

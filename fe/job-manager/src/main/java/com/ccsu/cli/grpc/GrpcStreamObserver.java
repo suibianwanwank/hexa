@@ -1,12 +1,10 @@
 package com.ccsu.cli.grpc;
 
+import io.grpc.stub.StreamObserver;
+import proto.cli.CliDisplayResponse;
 import com.ccsu.error.CommonErrorCode;
 import com.ccsu.error.CommonException;
 import io.grpc.Status;
-import io.grpc.StatusException;
-import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
-import job.CliDisplayResponse;
 import observer.SqlJobObserver;
 
 public class GrpcStreamObserver implements SqlJobObserver {

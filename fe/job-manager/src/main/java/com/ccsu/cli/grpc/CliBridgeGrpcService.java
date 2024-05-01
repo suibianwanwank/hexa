@@ -3,15 +3,14 @@ package com.ccsu.cli.grpc;
 import com.ccsu.manager.JobManager;
 import com.ccsu.session.UserRequest;
 import io.grpc.stub.StreamObserver;
-import job.CliBridgeGrpc;
-import job.CliDisplayResponse;
-import job.sqlJobRequest;
 import observer.SqlJobObserver;
-
+import proto.cli.CliBridgeGrpc.CliBridgeImplBase;
+import proto.cli.sqlJobRequest;
+import proto.cli.CliDisplayResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CliBridgeGrpcService extends CliBridgeGrpc.CliBridgeImplBase {
+public class CliBridgeGrpcService extends CliBridgeImplBase {
 
     //TODO If support cluster feature，remove it
     private static final String DEFAULT_CLUSTER = "suibianwanwan33";

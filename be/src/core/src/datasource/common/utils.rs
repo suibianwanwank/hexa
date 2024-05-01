@@ -29,7 +29,7 @@ where
     let mut arr = StringBuilder::with_capacity(1024, rows.len());
     for row in rows.iter() {
         let s: String = row.try_get(index).context(TryGetSqlxRowSnafu{})?;
-        arr.append_value(s);
+        arr.append_value(s.trim_end());
     }
     Ok(Arc::new(arr.finish()))
 }

@@ -1,8 +1,5 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.FilterExecNode;
-import arrow.datafusion.protobuf.PhysicalExprNode;
-import arrow.datafusion.protobuf.PhysicalPlanNode;
 import org.apache.calcite.adapter.enumerable.EnumerableFilter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -36,13 +33,13 @@ public class ExtendEnumerableFilter
     }
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
-        PhysicalExprNode exprNode = transformRexNodeToExprNode(getCondition());
-        PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
-        FilterExecNode.Builder builder = FilterExecNode.newBuilder()
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
+        proto.datafusion.PhysicalExprNode exprNode = transformRexNodeToExprNode(getCondition());
+        proto.datafusion.PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
+        proto.datafusion.FilterExecNode.Builder builder = proto.datafusion.FilterExecNode.newBuilder()
                 .setExpr(exprNode)
                 .setInput(input);
-        return PhysicalPlanNode.newBuilder()
+        return proto.datafusion.PhysicalPlanNode.newBuilder()
                 .setFilter(builder)
                 .build();
     }

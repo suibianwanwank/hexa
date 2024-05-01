@@ -1,6 +1,5 @@
 package com.ccsu.manager;
 
-import arrow.datafusion.protobuf.BridgeGrpc;
 import com.ccsu.grpc.observer.JobExecutorObserver;
 import com.ccsu.grpc.observer.grpc.SqlQueryGrpcObserver;
 import com.ccsu.parser.sqlnode.*;
@@ -82,11 +81,11 @@ public class SqlJobExecutor {
 
             ManagedChannel channel = grpcProvider.getOrCreateChannel(backEndConfig);
 
-            BridgeGrpc.BridgeStub stub = BridgeGrpc.newStub(channel);
+            proto.execute.BridgeGrpc.BridgeStub stub = proto.execute.BridgeGrpc.newStub(channel);
 
             LOGGER.info("Getting channel successful, ready to send grpc request to be.");
             // send and receive grpc message
-            stub.executeQuery(planResult.getResult(), new SqlQueryGrpcObserver(queryContext.getObservers()));
+            stub.executeQuery(generateExecQueryRequest(planResult), new SqlQueryGrpcObserver(queryContext.getObservers()));
 
             try {
                 future.get();
@@ -118,6 +117,14 @@ public class SqlJobExecutor {
                         + "Unsupported sql syntax =" + queryContext.getSql());
     }
 
+
+    private proto.execute.ExecQueryRequest generateExecQueryRequest(QueryPlanResult planResult) {
+        return proto.execute.ExecQueryRequest.newBuilder()
+                .setHeader(proto.execute.RequestHeader.newBuilder()
+                        .setJobId(queryContext.getSqlJobId()))
+                .setNode(planResult.getResult())
+                .build();
+    }
 
     private static final Map<String, SqlHandler> HANDLER_DISPATCHER = ImmutableMap.of(
             SqlSetConfig.class.getName(), new SetOptionHandler(),

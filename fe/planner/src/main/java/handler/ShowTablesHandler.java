@@ -1,10 +1,8 @@
 package handler;
 
-import com.ccsu.meta.data.ColumnInfo;
 import com.ccsu.meta.data.MetaIdentifier;
 import com.ccsu.meta.data.MetaPath;
 import com.ccsu.meta.data.TableInfo;
-import com.ccsu.parser.sqlnode.SqlShowColumns;
 import com.ccsu.parser.sqlnode.SqlShowTables;
 import context.QueryContext;
 

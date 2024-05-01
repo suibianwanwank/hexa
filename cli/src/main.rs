@@ -213,7 +213,6 @@ impl Completer for HintCompleter {
         if line.is_empty() || pos < line.len() || line.ends_with(';') || line.ends_with(' ') {
             return Ok((0, res));
         }
-
         let mut index = 0;
         if let Some(pre) = line.split_whitespace().last() {
             index = line.len() - pre.len();

@@ -1,7 +1,5 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.PhysicalPlanNode;
-import arrow.datafusion.protobuf.ProjectionExecNode;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -32,11 +30,10 @@ public class ExtendEnumerableProject
     }
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
-        ProjectionExecNode.Builder builder = ProjectionExecNode.newBuilder();
-        PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
+        proto.datafusion.ProjectionExecNode.Builder builder = proto.datafusion.ProjectionExecNode.newBuilder();
+        proto.datafusion.PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
         builder.setInput(input);
-        Pair<List<RexNode>, List<RelDataTypeField>> pair = Pair.of(getProjects(), rowType.getFieldList());
 
         for (RexNode project : getProjects()) {
             builder.addExpr(PhysicalPlanTransformUtil.transformRexNodeToExprNode(project));
@@ -46,7 +43,7 @@ public class ExtendEnumerableProject
             builder.addExprName(relDataTypeField.getName());
         }
 
-        return PhysicalPlanNode.newBuilder()
+        return proto.datafusion.PhysicalPlanNode.newBuilder()
                 .setProjection(builder)
                 .build();
     }
