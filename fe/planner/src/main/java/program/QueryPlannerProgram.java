@@ -5,29 +5,36 @@ import program.logical.LogicalHepProgram;
 import program.logical.LogicalVolcanoProgram;
 import program.program.RuleOptimizeProgram;
 import program.program.SequenceRuleBasedProgram;
-import program.rule.ExtendPhysicalRelTransformRule;
-import program.rule.LogicalCoreRules;
-import program.rule.RenameProjectRule;
+import program.rule.*;
 
 public class QueryPlannerProgram {
-
-    private QueryPlannerProgram() {
-    }
-
     private static final String EXPRESSION_REDUCE = "EXPRESSION_REDUCE";
     private static final String WINDOW_REWRITE = "WINDOW_REWRITE";
 
     public static final RuleOptimizeProgram PRE_SIMPLIFY_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
+                    .addLast(new ArrowTypeDeriveProgram())
                     .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
                             .setHepMatchOrder(HepMatchOrder.ARBITRARY)
                             .add(LogicalCoreRules.EXPRESSION_REDUCE)
+                            .add(LogicalCoreRules.JOIN_REMOVE)
+                            .add(LogicalCoreRules.SUB_QUERY)
+                            .build())
+                    .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
+                            .setHepMatchOrder(HepMatchOrder.ARBITRARY)
                             .setName(EXPRESSION_REDUCE)
                             .build())
                     .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
                             .setHepMatchOrder(HepMatchOrder.ARBITRARY)
                             .add(LogicalCoreRules.WINDOW_REWRITE)
                             .setName(WINDOW_REWRITE)
+                            .build())
+                    .addLast(new DecorateProgram())
+                    .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
+                            .setHepMatchOrder(HepMatchOrder.ARBITRARY)
+                            .add(LogicalCoreRules.EXPRESSION_REDUCE)
+                            .add(LogicalCoreRules.CONSTANT_REDUCTION_RULES)
+                            .setName(EXPRESSION_REDUCE)
                             .build())
                     .build();
 
@@ -40,9 +47,11 @@ public class QueryPlannerProgram {
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
                     .addLast(new LogicalVolcanoProgram.LogicalVolcanoProgramBuilder()
                             .add(LogicalCoreRules.LOGICAL_BASED_RULES)
+//                            .add(LogicalCoreRules.EXPRESSION_REDUCE)
+//                            .add(LogicalCoreRules.CONSTANT_REDUCTION_RULES)
                             .add(LogicalCoreRules.LOGICAL_TO_PHYSICAL_RULES)
                             .build())
-                    .addLast(RenameProjectRule.INSTANCE)
+//                    .addLast(RenameProjectRule.INSTANCE)
                     .build();
 
     /**

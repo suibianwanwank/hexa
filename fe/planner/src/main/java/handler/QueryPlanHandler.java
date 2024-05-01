@@ -1,9 +1,9 @@
 package handler;
 
-import arrow.datafusion.protobuf.PhysicalPlanNode;
 import com.facebook.airlift.log.Logger;
 import context.QueryContext;
 import convert.SqlConverter;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlNode;
 import program.QueryPlannerProgram;
@@ -30,9 +30,9 @@ public class QueryPlanHandler
 
         RelNode lastPlan = QueryPlannerProgram.PHYSICAL_OPTIMIZE_PROGRAM.optimize(physicalPlan, context);
 
-        LOGGER.info("Optimised physical execution plan:\n %s", lastPlan);
+        LOGGER.info("Optimised physical execution plan:\n %s", RelOptUtil.toString(lastPlan));
 
-        PhysicalPlanNode dataFusionPlan = ((PhysicalPlan) lastPlan).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode dataFusionPlan = ((PhysicalPlan) lastPlan).transformToDataFusionNode();
 
         return QueryPlanResult.success(dataFusionPlan);
     }

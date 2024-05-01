@@ -76,6 +76,10 @@ public class ArrowTypeFactory extends SqlTypeFactoryImpl {
             RelDataType newType = new ArrowDataType(ArrowTypeEnum.BOOL, typeSystem, typeName);
             return canonize(newType);
         }
+        if (typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR) {
+            RelDataType newType = new ArrowDataType(ArrowTypeEnum.UTF8, typeSystem, typeName);
+            return canonize(newType);
+        }
         RelDataType newType = new BasicSqlType(typeSystem, typeName);
         return canonize(newType);
     }
@@ -88,6 +92,12 @@ public class ArrowTypeFactory extends SqlTypeFactoryImpl {
         }
         if (typeName.allowsScale()) {
             return createSqlType(typeName, precision, typeName.getDefaultScale());
+        }
+
+        if (typeName == SqlTypeName.CHAR || typeName == SqlTypeName.VARCHAR) {
+            RelDataType newType = new ArrowDataType(ArrowTypeEnum.UTF8, typeSystem, typeName, precision);
+            newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
+            return canonize(newType);
         }
         assertBasic(typeName);
         assert (precision >= 0)

@@ -24,11 +24,11 @@ public class ShowColumnsHandler
 
         TableInfo table = context.getMetadataService().getTable(new MetaIdentifier(clusterId, path));
 
-        if(table == null) {
+        if (table == null) {
             return String.format("Table path: %s not exist", path);
         }
         String[][] data = new String[table.getColumns().size()][3];
-        for (int i =0; i<table.getColumns().size();i ++) {
+        for (int i = 0; i < table.getColumns().size(); i++) {
             ColumnInfo columnInfo = table.getColumns().get(i);
             data[i][0] = columnInfo.getColumnName();
             data[i][1] = columnInfo.showDataType();

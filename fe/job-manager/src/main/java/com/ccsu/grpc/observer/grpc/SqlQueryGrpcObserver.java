@@ -1,15 +1,11 @@
 package com.ccsu.grpc.observer.grpc;
 
-import arrow.datafusion.protobuf.RowDisplayResult;
-import com.ccsu.error.CommonErrorCode;
-import com.ccsu.error.CommonException;
-import observer.SqlJobObserver;
 import io.grpc.stub.StreamObserver;
+import observer.SqlJobObserver;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class SqlQueryGrpcObserver implements StreamObserver<RowDisplayResult> {
+public class SqlQueryGrpcObserver implements StreamObserver<proto.execute.ExecQueryResponse> {
 
     private final List<SqlJobObserver> observers;
 
@@ -18,8 +14,8 @@ public class SqlQueryGrpcObserver implements StreamObserver<RowDisplayResult> {
     }
 
     @Override
-    public void onNext(RowDisplayResult rowDisplayResult) {
-        String row = rowDisplayResult.getData().toString(StandardCharsets.UTF_8);
+    public void onNext(proto.execute.ExecQueryResponse execQueryResponse) {
+        String row = execQueryResponse.getQueryResult().toStringUtf8();
         for (SqlJobObserver observer : observers) {
             observer.onDataArrived(row);
         }

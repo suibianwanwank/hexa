@@ -1,20 +1,12 @@
 use crate::common::proto_error;
 use crate::protobuf::list_tables_response::Info;
 use crate::protobuf::{
-    ArrowType, FieldInfo, ListTablesResponse, RowDisplayResult, SchemaInfo, SourceScanConfig,
+    ArrowType, FieldInfo, ListTablesResponse, SchemaInfo, SourceScanConfig,
     TableInfo,
 };
 use datafusion_common::DataFusionError;
 use hexa::datasource::common::meta::{DatabaseItem, TableDetail};
 use hexa::datasource::dispatch::{DataSourceConfig, SourceType};
-
-impl From<&[u8]> for RowDisplayResult {
-    fn from(value: &[u8]) -> Self {
-        RowDisplayResult {
-            data: Vec::from(value),
-        }
-    }
-}
 
 impl TryFrom<&crate::protobuf::SourceType> for SourceType {
     type Error = DataFusionError;

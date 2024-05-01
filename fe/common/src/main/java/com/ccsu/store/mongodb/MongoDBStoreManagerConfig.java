@@ -14,9 +14,6 @@
 package com.ccsu.store.mongodb;
 
 import com.facebook.airlift.configuration.Config;
-import jdk.nashorn.internal.ir.annotations.Ignore;
-
-import javax.inject.Inject;
 
 public class MongoDBStoreManagerConfig {
     private String uri;

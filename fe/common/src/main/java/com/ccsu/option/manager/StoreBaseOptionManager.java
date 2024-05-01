@@ -64,8 +64,8 @@ public class StoreBaseOptionManager extends AbstractOptionManager {
         }
         OptionDefinition definition = definitionOptional.get();
         if (definition.type() != type) {
-            throw new CommonException(CommonErrorCode.OPTION_STORE_ERROR,
-                    String.format("Definition option %s‘s type is: %s, can not convert to %s ", name, definition.type(), type));
+            String errMsg = String.format("Definition option %s‘s type is: %s, can not convert to %s ", name, definition.type(), type);
+            throw new CommonException(CommonErrorCode.OPTION_STORE_ERROR, errMsg);
         }
         Optional<Option> value = optionStore.getOption(definition.name());
         if (!value.isPresent()) {

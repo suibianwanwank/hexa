@@ -1,6 +1,5 @@
 package com.ccsu.grpc.client;
 
-import arrow.datafusion.protobuf.*;
 import com.ccsu.MetadataStoreHolder;
 import com.ccsu.client.GrpcProvider;
 import com.ccsu.meta.type.arrow.ArrowTypeEnum;
@@ -17,6 +16,7 @@ import io.grpc.ManagedChannel;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 import static com.ccsu.pojo.DatasourceType.transformToProtoSourceType;
 
@@ -38,11 +38,11 @@ public class MetaBridgeClient {
 
     public void syncCollectAllItemInCatalog(DatasourceConfig config) {
         ManagedChannel channel = grpcProvider.getOrCreateChannel(backEndConfig);
-        BridgeGrpc.BridgeStub stub = BridgeGrpc.newStub(channel);
+        proto.execute.BridgeGrpc.BridgeStub stub = proto.execute.BridgeGrpc.newStub(channel);
 
         SettableFuture<Boolean> future = SettableFuture.create();
 
-        SourceScanConfig.Builder scanConfig = SourceScanConfig.newBuilder()
+        proto.datafusion.SourceScanConfig.Builder scanConfig = proto.datafusion.SourceScanConfig.newBuilder()
                 .setName(config.getConfigUniqueKey())
                 .setHost(config.getHost())
                 .setPort(Integer.parseInt(config.getPort()))
@@ -54,7 +54,7 @@ public class MetaBridgeClient {
             scanConfig.setDatabase(config.getDatabase());
         }
 
-        ListTablesRequest request = ListTablesRequest.newBuilder().setConfig(scanConfig).build();
+        proto.execute.ListTablesRequest request = proto.execute.ListTablesRequest.newBuilder().setConfig(scanConfig).build();
 
         stub.listTablesInCatalog(request, new ListTableStreamObserver(config, metadataStoreHolder, future));
 
@@ -69,10 +69,10 @@ public class MetaBridgeClient {
         ManagedChannel channel = grpcProvider.getOrCreateChannel(backEndConfig);
 
 
-        BridgeGrpc.BridgeBlockingStub blockingStub = BridgeGrpc.newBlockingStub(channel);
+        proto.execute.BridgeGrpc.BridgeBlockingStub blockingStub = proto.execute.BridgeGrpc.newBlockingStub(channel);
 
 
-        SourceScanConfig.Builder scanConfig = SourceScanConfig.newBuilder()
+        proto.datafusion.SourceScanConfig.Builder scanConfig = proto.datafusion.SourceScanConfig.newBuilder()
                 .setName(config.getConfigUniqueKey())
                 .setHost(config.getHost())
                 .setPort(Integer.parseInt(config.getPort()))
@@ -85,10 +85,10 @@ public class MetaBridgeClient {
         }
 
 
-        GetTableRequest request = GetTableRequest.newBuilder().setConfig(scanConfig)
+        proto.execute.GetTableRequest request = proto.execute.GetTableRequest.newBuilder().setConfig(scanConfig)
                 .setSchemaName(schemaName).setTableName(tableName).build();
 
-        TableInfo tableInfo = blockingStub.getTableDetail(request);
+        proto.execute.TableInfo tableInfo = blockingStub.getTableDetail(request);
 
         MetaPath metaPath = MetaPath.buildTablePath(config.getConfigUniqueKey(), schemaName, tableName);
 
@@ -103,8 +103,8 @@ public class MetaBridgeClient {
         metadataStoreHolder.addOrUpdateTable(metaPath, info);
     }
 
-    private ColumnInfo transformFieldInfoToColumnInfo(FieldInfo fieldInfo) {
-        ArrowType.ArrowTypeEnumCase typeEnumCase = fieldInfo.getTypeName().getArrowTypeEnumCase();
+    private ColumnInfo transformFieldInfoToColumnInfo(proto.execute.FieldInfo fieldInfo) {
+        proto.datafusion.ArrowType.ArrowTypeEnumCase typeEnumCase = fieldInfo.getTypeName().getArrowTypeEnumCase();
         switch (typeEnumCase) {
             case UINT8:
             case UINT16:
@@ -124,7 +124,7 @@ public class MetaBridgeClient {
                         ArrowTypeEnum.valueOf(typeEnumCase.name()),
                         fieldInfo.getNullable());
             case DECIMAL:
-                Decimal decimal = fieldInfo.getTypeName().getDECIMAL();
+                proto.datafusion.Decimal decimal = fieldInfo.getTypeName().getDECIMAL();
                 return new ColumnInfo(fieldInfo.getFieldName(),
                         ArrowTypeEnum.valueOf(typeEnumCase.name()),
                         fieldInfo.getNullable(), decimal.getPrecision(), decimal.getScale());

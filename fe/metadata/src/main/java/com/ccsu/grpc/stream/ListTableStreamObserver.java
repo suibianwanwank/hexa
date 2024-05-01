@@ -1,8 +1,5 @@
 package com.ccsu.grpc.stream;
 
-import arrow.datafusion.protobuf.ListTablesResponse;
-import arrow.datafusion.protobuf.SchemaInfo;
-import arrow.datafusion.protobuf.TableInfo;
 import com.ccsu.MetadataStoreHolder;
 import com.ccsu.pojo.DatasourceConfig;
 import com.ccsu.meta.data.MetaPath;
@@ -10,7 +7,7 @@ import com.facebook.airlift.log.Logger;
 import com.google.common.util.concurrent.SettableFuture;
 import io.grpc.stub.StreamObserver;
 
-public class ListTableStreamObserver implements StreamObserver<ListTablesResponse> {
+public class ListTableStreamObserver implements StreamObserver<proto.execute.ListTablesResponse> {
 
     private static final Logger LOGGER = Logger.get(ListTableStreamObserver.class);
 
@@ -28,9 +25,9 @@ public class ListTableStreamObserver implements StreamObserver<ListTablesRespons
     }
 
     @Override
-    public void onNext(ListTablesResponse listTablesResponse) {
-        if (listTablesResponse.getInfoCase() == ListTablesResponse.InfoCase.SCHEMAINFO) {
-            SchemaInfo schemaInfo = listTablesResponse.getSchemaInfo();
+    public void onNext(proto.execute.ListTablesResponse listTablesResponse) {
+        if (listTablesResponse.getInfoCase() == proto.execute.ListTablesResponse.InfoCase.SCHEMAINFO) {
+            proto.execute.SchemaInfo schemaInfo = listTablesResponse.getSchemaInfo();
 
             MetaPath metaPath = MetaPath.buildSchemaPath(datasourceConfig.getConfigUniqueKey(), schemaInfo.getSchemaName());
 
@@ -42,7 +39,7 @@ public class ListTableStreamObserver implements StreamObserver<ListTablesRespons
             return;
         }
 
-        TableInfo tableInfo = listTablesResponse.getTableInfo();
+        proto.execute.TableInfo tableInfo = listTablesResponse.getTableInfo();
 
         MetaPath metaPath = MetaPath.buildTablePath(datasourceConfig.getConfigUniqueKey(), tableInfo.getSchemaName(), tableInfo.getTableName());
 

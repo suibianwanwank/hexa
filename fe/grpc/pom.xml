@@ -77,7 +77,7 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/generated-sources/proto</outputDirectory>
+                            <outputDirectory>${project.build.directory}/generated-sources/</outputDirectory>
                         </configuration>
                     </execution>
                     <execution>

@@ -4,7 +4,7 @@ package handler;
  * Used to represent a no return result type.
  */
 public class Void {
-    public static Void DEFAULT = new Void();
+    public final static Void DEFAULT = new Void();
 
     private Void() {
     }

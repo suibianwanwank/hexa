@@ -1,9 +1,7 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.*;
 import com.ccsu.error.CommonException;
 import com.ccsu.meta.type.ArrowDataType;
-import com.ccsu.meta.type.arrow.ArrowTypeEnum;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.calcite.rel.RelNode;
@@ -17,8 +15,9 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlTypeName;
+import proto.datafusion.PhysicalIsNotNull;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,104 +27,107 @@ import static com.ccsu.error.CommonErrorCode.PLAN_TRANSFORM_ERROR;
 
 public class PhysicalPlanTransformUtil {
 
-    public static final EmptyMessage EMPTY_MESSAGE = EmptyMessage.getDefaultInstance();
+    public static final proto.datafusion.EmptyMessage EMPTY_MESSAGE = proto.datafusion.EmptyMessage.getDefaultInstance();
 
     private PhysicalPlanTransformUtil() {
     }
 
-    public static JoinType transformJoinType(JoinRelType type) {
+    public static proto.datafusion.JoinType transformJoinType(JoinRelType type) {
         switch (type) {
             case INNER:
-                return JoinType.INNER;
+                return proto.datafusion.JoinType.INNER;
             case LEFT:
-                return JoinType.LEFT;
+                return proto.datafusion.JoinType.LEFT;
             case RIGHT:
-                return JoinType.RIGHT;
+                return proto.datafusion.JoinType.RIGHT;
             case FULL:
-                return JoinType.FULL;
+                return proto.datafusion.JoinType.FULL;
             case ANTI:
-                return JoinType.LEFTANTI;
+                return proto.datafusion.JoinType.LEFTANTI;
             case SEMI:
-                return JoinType.LEFTSEMI;
+                return proto.datafusion.JoinType.LEFTSEMI;
             default:
                 String errMsg = String.format("Join type:%s not support", type);
                 throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
         }
     }
 
-    public static JoinFilter transformRexNodeToJoinFilter(RexNode rexNode, List<RelDataTypeField> fieldList, int leftSidePos) {
+    public static proto.datafusion.JoinFilter transformRexNodeToJoinFilter(RexNode rexNode, List<RelDataTypeField> fieldList, int leftSidePos) {
 
-        Schema.Builder schema = Schema.newBuilder();
+        proto.datafusion.Schema.Builder schema = proto.datafusion.Schema.newBuilder();
 
-        List<ColumnIndex> columnIndexList = new ArrayList<>();
+        List<proto.datafusion.ColumnIndex> columnIndexList = new ArrayList<>();
 
         for (RelDataTypeField relDataTypeField : fieldList) {
-            ArrowType arrowType = transformRelTypeToArrowType(relDataTypeField.getType());
-            Field.Builder field = Field.newBuilder().setArrowType(arrowType)
+            proto.datafusion.ArrowType arrowType = transformRelTypeToArrowType(relDataTypeField.getType());
+            proto.datafusion.Field.Builder field = proto.datafusion.Field.newBuilder().setArrowType(arrowType)
                     .setName(relDataTypeField.getName());
             schema.addColumns(field);
 
             if (columnIndexList.size() < leftSidePos) {
-                ColumnIndex columnIndex = ColumnIndex.newBuilder()
-                        .setSide(JoinSide.LEFT_SIDE)
+                proto.datafusion.ColumnIndex columnIndex = proto.datafusion.ColumnIndex.newBuilder()
+                        .setSide(proto.datafusion.JoinSide.LEFT_SIDE)
                         .setIndex(columnIndexList.size()).build();
                 columnIndexList.add(columnIndex);
                 continue;
             }
 
-            ColumnIndex columnIndex = ColumnIndex.newBuilder()
-                    .setSide(JoinSide.RIGHT_SIDE)
+            proto.datafusion.ColumnIndex columnIndex = proto.datafusion.ColumnIndex.newBuilder()
+                    .setSide(proto.datafusion.JoinSide.RIGHT_SIDE)
                     .setIndex(columnIndexList.size() - leftSidePos).build();
 
             columnIndexList.add(columnIndex);
         }
 
-        return JoinFilter.newBuilder()
+        return proto.datafusion.JoinFilter.newBuilder()
                 .setExpression(transformRexNodeToExprNode(rexNode))
                 .addAllColumnIndices(columnIndexList)
                 .setSchema(schema)
                 .build();
     }
 
-    public static PhysicalExprNode transformRexNodeToExprNode(RexNode rexNode) {
-        PhysicalExprNode.Builder builder = PhysicalExprNode.newBuilder();
+    public static proto.datafusion.PhysicalExprNode transformRexNodeToExprNode(RexNode rexNode) {
+        proto.datafusion.PhysicalExprNode.Builder builder = proto.datafusion.PhysicalExprNode.newBuilder();
         switch (rexNode.getKind()) {
             case LITERAL: {
-                ScalarValue scalarValue = transformLiteral((RexLiteral) rexNode);
+                proto.datafusion.ScalarValue scalarValue = transformLiteral((RexLiteral) rexNode);
                 return builder.setLiteral(scalarValue)
                         .build();
             }
             case INPUT_REF: {
-                PhysicalColumn column = transformColumn((RexInputRef) rexNode);
+                proto.datafusion.PhysicalColumn column = transformColumn((RexInputRef) rexNode);
                 return builder.setColumn(column)
                         .build();
             }
             case CASE: {
-                PhysicalCaseNode caseNode = transformCaseNode((RexCall) rexNode);
+                proto.datafusion.PhysicalCaseNode caseNode = transformCaseNode((RexCall) rexNode);
                 return builder.setCase(caseNode)
                         .build();
             }
             case LIKE: {
-                PhysicalLikeExprNode likeNode = transformLikeNode((RexCall) rexNode);
+                proto.datafusion.PhysicalLikeExprNode likeNode = transformLikeNode((RexCall) rexNode);
                 return builder.setLikeExpr(likeNode)
                         .build();
 
             }
             case CAST: {
-                PhysicalCastNode castNode = transformCastNode((RexCall) rexNode);
+                proto.datafusion.PhysicalCastNode castNode = transformCastNode((RexCall) rexNode);
                 return builder.setCast(castNode)
                         .build();
             }
             case OR:
             case AND:
                 return transformBinaryExpr((RexCall) rexNode);
+            case IS_NOT_NULL: {
+                PhysicalIsNotNull.Builder isNotNull = PhysicalIsNotNull.newBuilder()
+                        .setExpr(transformRexNodeToExprNode(((RexCall) rexNode).getOperands().get(0)));
+                return builder.setIsNotNullExpr(isNotNull).build();
+            }
             case OTHER: {
-                PhysicalScalarUdfNode function = transformFunction(rexNode);
+                proto.datafusion.PhysicalScalarUdfNode function = transformFunction(rexNode);
                 return builder.setScalarUdf(function)
                         .build();
             }
-
-
             default:
                 if (rexNode.getKind().belongsTo(SqlKind.BINARY_COMPARISON)) {
                     return transformBinaryExpr((RexCall) rexNode);
@@ -167,11 +169,11 @@ public class PhysicalPlanTransformUtil {
      * @param rexCall
      * @return
      */
-    public static PhysicalExprNode transformBinaryExpr(RexCall rexCall) {
-        PhysicalBinaryExprNode.Builder binary = PhysicalBinaryExprNode.newBuilder();
+    public static proto.datafusion.PhysicalExprNode transformBinaryExpr(RexCall rexCall) {
+        proto.datafusion.PhysicalBinaryExprNode.Builder binary = proto.datafusion.PhysicalBinaryExprNode.newBuilder();
 
-        PhysicalExprNode l = transformRexNodeToExprNode(rexCall.getOperands().get(0));
-        PhysicalExprNode r = transformRexNodeToExprNode(rexCall.getOperands().get(1));
+        proto.datafusion.PhysicalExprNode l = transformRexNodeToExprNode(rexCall.getOperands().get(0));
+        proto.datafusion.PhysicalExprNode r = transformRexNodeToExprNode(rexCall.getOperands().get(1));
 
         binary.setL(l);
         binary.setR(r);
@@ -182,7 +184,7 @@ public class PhysicalPlanTransformUtil {
         }
 
         binary.setOp(BINARY_OP_MAP.get(rexCall.getKind()));
-        return PhysicalExprNode.newBuilder().setBinaryExpr(binary).build();
+        return proto.datafusion.PhysicalExprNode.newBuilder().setBinaryExpr(binary).build();
     }
 
     private final static Map<SqlKind, String> BINARY_OP_MAP = ImmutableMap.of(
@@ -196,27 +198,37 @@ public class PhysicalPlanTransformUtil {
             SqlKind.OR, "Or"
     );
 
-    public static PhysicalExprNode transformAggFunction(AggregateCall call, List<RelDataTypeField> fields) {
-        PhysicalAggregateExprNode.Builder builder = PhysicalAggregateExprNode.newBuilder();
-        String aggName = call.getName();
-        AggregateFunction aggregateFunction = null;
+    public static proto.datafusion.PhysicalExprNode transformAggFunction(AggregateCall call, List<RelDataTypeField> fields) {
+        proto.datafusion.PhysicalAggregateExprNode.Builder builder = proto.datafusion.PhysicalAggregateExprNode.newBuilder();
+        String aggName = call.getAggregation().getName();
+        proto.datafusion.AggregateFunction aggregateFunction;
         try {
-            aggregateFunction = AggregateFunction.valueOf(aggName);
+            aggregateFunction = proto.datafusion.AggregateFunction.valueOf(aggName);
             builder.setAggrFunction(aggregateFunction);
         } catch (Exception ignore) {
-        }
-        if (aggregateFunction == null) {
             builder.setUserDefinedAggrFunction(aggName);
         }
-        for (Integer integer : call.getArgList()) {
-            builder.addExpr(transformRexNodeToExprNode(RexInputRef.of(integer, fields)));
+
+        if (call.getArgList().isEmpty()) {
+            for (int i = 0; i < fields.size(); i++) {
+                builder.addExpr(transformRexNodeToExprNode(RexInputRef.of(i, fields)));
+            }
+        } else {
+            for (Integer integer : call.getArgList()) {
+                builder.addExpr(transformRexNodeToExprNode(RexInputRef.of(integer, fields)));
+            }
         }
-        return PhysicalExprNode.newBuilder().setAggregateExpr(builder).build();
+        return proto.datafusion.PhysicalExprNode.newBuilder().setAggregateExpr(builder).build();
     }
 
-    public static ScalarValue transformLiteral(RexLiteral literal) {
-        ScalarValue.Builder builder = ScalarValue.newBuilder();
+    public static proto.datafusion.ScalarValue transformLiteral(RexLiteral literal) {
+        proto.datafusion.ScalarValue.Builder builder = proto.datafusion.ScalarValue.newBuilder();
         Comparable comparable = Objects.requireNonNull(literal.getValue());
+        if (!(literal.getType() instanceof ArrowDataType)) {
+            String value = literal.getValue2().toString();
+            return builder.setUtf8Value(value)
+                    .build();
+        }
         ArrowDataType type = (ArrowDataType) literal.getType();
         switch (type.getArrowType()) {
             case INT8: {
@@ -235,8 +247,7 @@ public class PhysicalPlanTransformUtil {
                         .build();
             }
             case UTF8:
-                String s = (String) comparable;
-                return builder.setUtf8Value(s)
+                return builder.setUtf8Value(literal.getValue2().toString())
                         .build();
             case BOOL:
                 boolean b = Boolean.parseBoolean((comparable).toString());
@@ -248,20 +259,20 @@ public class PhysicalPlanTransformUtil {
         }
     }
 
-    public static PhysicalColumn transformColumn(RexInputRef inputRef) {
-        PhysicalColumn.Builder builder = PhysicalColumn.newBuilder();
+    public static proto.datafusion.PhysicalColumn transformColumn(RexInputRef inputRef) {
+        proto.datafusion.PhysicalColumn.Builder builder = proto.datafusion.PhysicalColumn.newBuilder();
         return builder.setIndex(inputRef.getIndex())
                 .setName(inputRef.getName())
                 .build();
     }
 
-    public static PhysicalCaseNode transformCaseNode(RexCall call) {
-        PhysicalCaseNode.Builder builder = PhysicalCaseNode.newBuilder();
+    public static proto.datafusion.PhysicalCaseNode transformCaseNode(RexCall call) {
+        proto.datafusion.PhysicalCaseNode.Builder builder = proto.datafusion.PhysicalCaseNode.newBuilder();
         List<RexNode> operands = call.getOperands();
         for (int i = 0; i < operands.size() / 2; i += 2) {
             RexNode whenNode = operands.get(i);
             RexNode thenNode = operands.get(i + 1);
-            PhysicalWhenThen whenThen = PhysicalWhenThen.newBuilder()
+            proto.datafusion.PhysicalWhenThen whenThen = proto.datafusion.PhysicalWhenThen.newBuilder()
                     .setWhenExpr(transformRexNodeToExprNode(whenNode))
                     .setThenExpr(transformRexNodeToExprNode(thenNode))
                     .build();
@@ -271,14 +282,14 @@ public class PhysicalPlanTransformUtil {
         return builder.build();
     }
 
-    public static JoinOn transformJoinOn(RexNode rexNode, RelNode left, RelNode right) {
+    public static proto.datafusion.JoinOn transformJoinOn(RexNode rexNode, RelNode left, RelNode right) {
         if (!rexNode.isA(SqlKind.EQUALS)) {
             String errMsg = String.format("RexNode:%s can't transformed Join On", rexNode);
             throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
         }
 
         List<RelDataTypeField> leftFields = left.getRowType().getFieldList();
-        List<RelDataTypeField> rightFields = left.getRowType().getFieldList();
+        List<RelDataTypeField> rightFields = right.getRowType().getFieldList();
 
         RexCall call = (RexCall) rexNode;
         RexNode lOp = call.getOperands().get(0);
@@ -289,18 +300,20 @@ public class PhysicalPlanTransformUtil {
         }
         int leftIndex = ((RexInputRef) lOp).getIndex();
         int rightIndex = ((RexInputRef) rOp).getIndex() - leftFields.size();
-        return JoinOn.newBuilder()
-                .setLeft(PhysicalExprNode.newBuilder().setColumn(PhysicalColumn.newBuilder()
-                        .setName(leftFields.get(leftIndex).getName())
-                        .setIndex(leftIndex)))
-                .setRight(PhysicalExprNode.newBuilder().setColumn(PhysicalColumn.newBuilder()
-                        .setName(rightFields.get(rightIndex).getName())
-                        .setIndex(rightIndex)))
+        return proto.datafusion.JoinOn.newBuilder()
+                .setLeft(proto.datafusion.PhysicalExprNode.newBuilder()
+                        .setColumn(proto.datafusion.PhysicalColumn.newBuilder()
+                                .setName(leftFields.get(leftIndex).getName())
+                                .setIndex(leftIndex)))
+                .setRight(proto.datafusion.PhysicalExprNode.newBuilder()
+                        .setColumn(proto.datafusion.PhysicalColumn.newBuilder()
+                                .setName(rightFields.get(rightIndex).getName())
+                                .setIndex(rightIndex)))
                 .build();
     }
 
-    public static PhysicalLikeExprNode transformLikeNode(RexCall call) {
-        PhysicalLikeExprNode.Builder builder = PhysicalLikeExprNode.newBuilder();
+    public static proto.datafusion.PhysicalLikeExprNode transformLikeNode(RexCall call) {
+        proto.datafusion.PhysicalLikeExprNode.Builder builder = proto.datafusion.PhysicalLikeExprNode.newBuilder();
         List<RexNode> operands = call.getOperands();
         RexNode expr = operands.get(0);
         RexNode pattern = operands.get(1);
@@ -312,22 +325,22 @@ public class PhysicalPlanTransformUtil {
                 .build();
     }
 
-    public static PhysicalCastNode transformCastNode(RexCall call) {
+    public static proto.datafusion.PhysicalCastNode transformCastNode(RexCall call) {
         List<RexNode> operands = call.getOperands();
-        return PhysicalCastNode.newBuilder()
+        return proto.datafusion.PhysicalCastNode.newBuilder()
                 .setExpr(transformRexNodeToExprNode(operands.get(0)))
                 .setArrowType(transformRelTypeToArrowType(call.getType()))
                 .build();
     }
 
-    public static PhysicalScalarUdfNode transformFunction(RexNode node) {
+    public static proto.datafusion.PhysicalScalarUdfNode transformFunction(RexNode node) {
         if (node instanceof RexCall) {
             SqlOperator operator = ((RexCall) node).getOperator();
-            List<PhysicalExprNode> args = Lists.newArrayList();
+            List<proto.datafusion.PhysicalExprNode> args = Lists.newArrayList();
             for (RexNode operand : ((RexCall) node).getOperands()) {
                 args.add(transformRexNodeToExprNode(operand));
             }
-            return PhysicalScalarUdfNode.newBuilder()
+            return proto.datafusion.PhysicalScalarUdfNode.newBuilder()
                     .setName(operator.getName())
                     .addAllArgs(args)
                     .build();
@@ -336,14 +349,14 @@ public class PhysicalPlanTransformUtil {
         throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
     }
 
-    public static PhysicalScalarUdfNode transformAnd(RexNode node) {
+    public static proto.datafusion.PhysicalScalarUdfNode transformAnd(RexNode node) {
         if (node instanceof RexCall) {
             SqlOperator operator = ((RexCall) node).getOperator();
-            List<PhysicalExprNode> args = Lists.newArrayList();
+            List<proto.datafusion.PhysicalExprNode> args = Lists.newArrayList();
             for (RexNode operand : ((RexCall) node).getOperands()) {
                 args.add(transformRexNodeToExprNode(operand));
             }
-            return PhysicalScalarUdfNode.newBuilder()
+            return proto.datafusion.PhysicalScalarUdfNode.newBuilder()
                     .setName(operator.getName())
                     .addAllArgs(args)
                     .build();
@@ -352,63 +365,72 @@ public class PhysicalPlanTransformUtil {
         throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
     }
 
-    public static ArrowType transformRelTypeToArrowType(RelDataType relDataType) {
+    public static proto.datafusion.ArrowType transformRelTypeToArrowType(RelDataType relDataType) {
+
+        if (!(relDataType instanceof ArrowDataType)) {
+            if (relDataType.getSqlTypeName() == SqlTypeName.INTEGER) {
+                return proto.datafusion.ArrowType.newBuilder().setINT32(EMPTY_MESSAGE).build();
+            }
+            throw new CommonException(PLAN_TRANSFORM_ERROR, "Can not refer arrow type");
+        }
 
         ArrowDataType arrowDataType = (ArrowDataType) relDataType;
 
-        ArrowType.ArrowTypeEnumCase arrowTypeEnumCase = ArrowType.ArrowTypeEnumCase.valueOf(arrowDataType.getArrowType().name());
+        proto.datafusion.ArrowType.ArrowTypeEnumCase arrowTypeEnumCase = proto.datafusion.ArrowType.ArrowTypeEnumCase
+                .valueOf(arrowDataType.getArrowType().name());
 
         switch (arrowTypeEnumCase) {
             case UINT8:
-                return ArrowType.newBuilder().setUINT8(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setUINT8(EMPTY_MESSAGE).build();
             case UINT16:
-                return ArrowType.newBuilder().setUINT16(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setUINT16(EMPTY_MESSAGE).build();
             case UINT32:
-                return ArrowType.newBuilder().setUINT32(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setUINT32(EMPTY_MESSAGE).build();
             case UINT64:
-                return ArrowType.newBuilder().setUINT64(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setUINT64(EMPTY_MESSAGE).build();
             case INT8:
-                return ArrowType.newBuilder().setINT8(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setINT8(EMPTY_MESSAGE).build();
             case INT16:
-                return ArrowType.newBuilder().setINT16(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setINT16(EMPTY_MESSAGE).build();
             case INT32:
-                return ArrowType.newBuilder().setINT32(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setINT32(EMPTY_MESSAGE).build();
             case INT64:
-                return ArrowType.newBuilder().setINT64(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setINT64(EMPTY_MESSAGE).build();
             case FLOAT16:
-                return ArrowType.newBuilder().setFLOAT16(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setFLOAT16(EMPTY_MESSAGE).build();
             case FLOAT32:
-                return ArrowType.newBuilder().setFLOAT32(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setFLOAT32(EMPTY_MESSAGE).build();
             case FLOAT64:
-                return ArrowType.newBuilder().setFLOAT64(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setFLOAT64(EMPTY_MESSAGE).build();
             case UTF8:
-                return ArrowType.newBuilder().setUTF8(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setUTF8(EMPTY_MESSAGE).build();
             case BOOL:
-                return ArrowType.newBuilder().setBOOL(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setBOOL(EMPTY_MESSAGE).build();
             case DATE64:
-                return ArrowType.newBuilder().setDATE64(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setDATE64(EMPTY_MESSAGE).build();
             case DATE32:
-                return ArrowType.newBuilder().setDATE32(EMPTY_MESSAGE).build();
+                return proto.datafusion.ArrowType.newBuilder().setDATE32(EMPTY_MESSAGE).build();
             case DECIMAL:
-                Decimal.Builder builder = Decimal.newBuilder();
+                proto.datafusion.Decimal.Builder builder = proto.datafusion.Decimal.newBuilder();
                 if (arrowDataType.getPrecision() > 0) {
                     builder.setPrecision(arrowDataType.getPrecision());
                 }
                 if (arrowDataType.getScale() > 0) {
                     builder.setScale(arrowDataType.getScale());
                 }
-                return ArrowType.newBuilder().setDECIMAL(builder).build();
+                return proto.datafusion.ArrowType.newBuilder().setDECIMAL(builder).build();
             default:
                 String errMsg = String.format("RelDataType:%s can not be mapping", relDataType);
                 throw new CommonException(PLAN_TRANSFORM_ERROR, errMsg);
         }
     }
 
-    public static Schema.Builder buildRelNodeSchema(List<RelDataTypeField> fieldList) {
-        Schema.Builder schema = Schema.newBuilder();
+    public static proto.datafusion.Schema.Builder buildRelNodeSchema(List<RelDataTypeField> fieldList) {
+        proto.datafusion.Schema.Builder schema = proto.datafusion.Schema.newBuilder();
         for (RelDataTypeField relDataTypeField : fieldList) {
-            ArrowType arrowType = transformRelTypeToArrowType(relDataTypeField.getType());
-            Field.Builder field = Field.newBuilder().setArrowType(arrowType)
+            proto.datafusion.ArrowType arrowType = transformRelTypeToArrowType(relDataTypeField.getType());
+            proto.datafusion.Field.Builder field = proto.datafusion.Field.newBuilder()
+                    .setArrowType(arrowType)
                     .setNullable(relDataTypeField.getType().isNullable())
                     .setName(relDataTypeField.getName());
             schema.addColumns(field);

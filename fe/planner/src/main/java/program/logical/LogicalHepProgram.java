@@ -49,7 +49,7 @@ public class LogicalHepProgram extends RuleBasedProgram {
         PlannerSetting plannerSetting = new PlannerSetting(PlannerCancelFlag.create(100000));
         HepPlanner planner = new LogicalHepPlanner(hepProgram, plannerSetting);
 
-        if (optListenerList.size() != 0) {
+        if (!optListenerList.isEmpty()) {
             for (RelOptListener listener : optListenerList) {
                 planner.addListener(listener);
             }
@@ -69,7 +69,6 @@ public class LogicalHepProgram extends RuleBasedProgram {
 
     public static class LogicalHepProgramBuilder {
         private final LogicalHepProgram hepRuleProgram = new LogicalHepProgram();
-
 
         public LogicalHepProgramBuilder setMatchLimit(Integer matchLimit) {
             requireNonNull(matchLimit);

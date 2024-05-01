@@ -55,9 +55,11 @@ public class SqlConverter {
                 .withTrimUnusedFields(true)
                 .withExpand(expand)
                 .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
-                .withRelBuilderConfigTransform(relBuilderConfig -> relBuilderConfig.withSimplify(false))
+                .withRelBuilderConfigTransform(relBuilderConfig -> relBuilderConfig
+                        .withSimplify(false)
+                        .withConvertCorrelateToJoin(true))
                 .withHintStrategyTable(HintStrategyTable.EMPTY)
-                .withCreateValuesRel(true);
+                .withCreateValuesRel(false);
 
         SqlToRelConverter sqlToRelConverter = new ExtendSqlToRelConverter(new SqlToRelContext(this),
                 sqlValidator,

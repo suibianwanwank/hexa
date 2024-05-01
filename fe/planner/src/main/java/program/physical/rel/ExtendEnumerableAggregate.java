@@ -1,6 +1,5 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.*;
 import org.apache.calcite.adapter.enumerable.EnumerableAggregate;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -11,6 +10,9 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import proto.datafusion.AggregateMode;
+import proto.datafusion.MaybeFilter;
+import proto.datafusion.PhysicalExprNode;
 
 import java.util.List;
 
@@ -40,23 +42,34 @@ public class ExtendEnumerableAggregate
     }
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
-        AggregateExecNode.Builder aggregateNode = AggregateExecNode.newBuilder();
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
+        proto.datafusion.AggregateExecNode.Builder aggregateNode = proto.datafusion.AggregateExecNode.newBuilder();
 
-        PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
         aggregateNode.setInput(input);
 
+
+        List<RelDataTypeField> inputFields = getInput().getRowType().getFieldList();
         for (Integer bitSet : getGroupSet()) {
             RexInputRef inputRef = RexInputRef.of(bitSet, getRowType().getFieldList());
-            aggregateNode.addGroupExpr(transformRexNodeToExprNode(inputRef));
+            proto.datafusion.PhysicalColumn.Builder column = proto.datafusion.PhysicalColumn
+                    .newBuilder()
+                    .setIndex(inputRef.getIndex())
+                    .setName(inputFields.get(inputRef.getIndex()).getName());
+            aggregateNode.addGroupExpr(PhysicalExprNode.newBuilder().setColumn(column).build());
+            aggregateNode.addGroupExprName(inputFields.get(inputRef.getIndex()).getName());
+            aggregateNode.addGroups(false);
         }
         for (AggregateCall call : getAggCallList()) {
-            aggregateNode.addAggrExpr(transformAggFunction(call, getRowType().getFieldList()));
+            aggregateNode.addAggrExpr(transformAggFunction(call, getInput().getRowType().getFieldList()));
+            aggregateNode.addAggrExprName(call.getName());
+            aggregateNode.addFilterExpr(MaybeFilter.newBuilder().build());
         }
 
-        aggregateNode.setMode(AggregateMode.SINGLE);
-        aggregateNode.setInputSchema(buildRelNodeSchema(getInput().getRowType().getFieldList()));
-        return PhysicalPlanNode.newBuilder().setAggregate(aggregateNode).build();
+        aggregateNode.setMode(AggregateMode.FINAL_PARTITIONED);
+        aggregateNode.setInputSchema(buildRelNodeSchema(inputFields));
+
+        return proto.datafusion.PhysicalPlanNode.newBuilder().setAggregate(aggregateNode).build();
     }
 
     @Override

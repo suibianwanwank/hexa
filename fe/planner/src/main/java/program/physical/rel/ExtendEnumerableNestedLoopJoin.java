@@ -1,19 +1,12 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.JoinFilter;
-import arrow.datafusion.protobuf.JoinType;
-import arrow.datafusion.protobuf.NestedLoopJoinExecNode;
-import arrow.datafusion.protobuf.PhysicalPlanNode;
-import org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableNestedLoopJoin;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 import java.util.Set;
@@ -48,19 +41,19 @@ public class ExtendEnumerableNestedLoopJoin
     }
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
-        PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToDataFusionNode();
-        PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToDataFusionNode();
-        JoinType joinType = transformJoinType(getJoinType());
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
+        proto.datafusion.PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToDataFusionNode();
+        proto.datafusion.JoinType joinType = transformJoinType(getJoinType());
 
-        JoinFilter joinFilter = transformRexNodeToJoinFilter(condition, getRowType().getFieldList(), getLeft().getRowType().getFieldList().size());
+        proto.datafusion.JoinFilter joinFilter = transformRexNodeToJoinFilter(condition, getRowType().getFieldList(), getLeft().getRowType().getFieldList().size());
 
-        NestedLoopJoinExecNode.Builder builder = NestedLoopJoinExecNode.newBuilder()
+        proto.datafusion.NestedLoopJoinExecNode.Builder builder = proto.datafusion.NestedLoopJoinExecNode.newBuilder()
                 .setLeft(leftNode)
                 .setRight(rightNode)
                 .setJoinType(joinType)
                 .setFilter(joinFilter);
-        return PhysicalPlanNode.newBuilder()
+        return proto.datafusion.PhysicalPlanNode.newBuilder()
                 .setNestedLoopJoin(builder)
                 .build();
     }

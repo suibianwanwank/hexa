@@ -45,6 +45,8 @@ public class ExtendPhysicalRelTransformRule implements RuleOptimizeProgram {
                     other = ExtendEnumerableSort.create((EnumerableSort) other);
                 } else if (other instanceof EnumerableNestedLoopJoin) {
                     other = ExtendEnumerableNestedLoopJoin.create((EnumerableNestedLoopJoin) other);
+                } else if (other instanceof EnumerableUnion) {
+                    other = ExtendEnumerableUnion.create((EnumerableUnion) other);
                 }
                 return super.visit(other);
             } catch (Exception e) {

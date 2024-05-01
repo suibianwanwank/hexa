@@ -3,6 +3,7 @@ use snafu::Snafu;
 use hexa::datasource::common::DatasourceCommonError;
 
 pub mod server;
+mod util;
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(super)))]

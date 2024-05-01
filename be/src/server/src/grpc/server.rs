@@ -1,28 +1,30 @@
+use crate::grpc::util::{format_all_batch_to_query_response, map_result_to_status_err};
 use crate::grpc::{
     DatasourceConfigTryFromSnafu, ExecuteStreamSnafu, ExecutionPlanTryIntoSnafu,
     GetTableDetailSnafu, ListTableAndSchemasSnafu, TableInfoTryFromSnafu,
 };
 use async_trait::async_trait;
-use datafusion::arrow::array::RecordBatch;
-use datafusion::arrow::util::pretty::pretty_format_batches;
+use datafusion::execution::context::SessionState;
+use datafusion::execution::runtime_env::RuntimeEnv;
 use datafusion::execution::TaskContext;
 use datafusion::physical_plan::display::DisplayableExecutionPlan;
-use datafusion::physical_plan::{execute_stream, ExecutionPlan};
-use datafusion::prelude::SessionContext;
+use datafusion::physical_plan::{collect, ExecutionPlan};
+use datafusion::prelude::{SessionConfig, SessionContext};
 use hexa::datasource::dispatch::{DataSourceConfig, QueryDispatcher};
 use hexa_proto::physical_plan::{AsExecutionPlan, DefaultPhysicalExtensionCodec};
 use hexa_proto::protobuf::bridge_server::Bridge;
 use hexa_proto::protobuf::{
-    GetTableRequest, ListTablesRequest, ListTablesResponse, PhysicalPlanNode, RowDisplayResult,
+    ExecQueryRequest, ExecQueryResponse, GetTableRequest, ListTablesRequest, ListTablesResponse,
     TableInfo,
 };
 use snafu::ResultExt;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::Sender;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::codegen::tokio_stream::{Stream, StreamExt};
 use tonic::{Request, Response, Status};
-use tracing::{error, info, span, Level};
+use tracing::{info, span, Level};
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct BeConnectBridgeService {}
@@ -30,11 +32,11 @@ pub struct BeConnectBridgeService {}
 /// Server-side implementation for communicating with Front end's grpc.
 #[async_trait]
 impl Bridge for BeConnectBridgeService {
-    type executeQueryStream = ReceiverStream<Result<RowDisplayResult, Status>>;
+    type executeQueryStream = ReceiverStream<Result<ExecQueryResponse, Status>>;
 
     async fn execute_query(
         &self,
-        request: Request<PhysicalPlanNode>,
+        request: Request<ExecQueryRequest>,
     ) -> Result<Response<Self::executeQueryStream>, Status> {
         map_result_to_status_err(self.inner_execute_query(request).await)
     }
@@ -59,18 +61,24 @@ impl Bridge for BeConnectBridgeService {
 impl BeConnectBridgeService {
     async fn inner_execute_query(
         &self,
-        request: Request<PhysicalPlanNode>,
-    ) -> super::Result<Response<ReceiverStream<Result<RowDisplayResult, Status>>>> {
-        let ctx = SessionContext::new();
+        request: Request<ExecQueryRequest>,
+    ) -> super::Result<Response<ReceiverStream<Result<ExecQueryResponse, Status>>>> {
+        let req = request.into_inner();
 
-        let id = ctx.session_id();
+        let node = req.node.unwrap();
+        let job_id = req.header.unwrap().job_id;
 
-        let span = span!(Level::INFO, "session", id);
+        let runtime = Arc::new(RuntimeEnv::default());
+        let session_state = SessionState::new_with_config_rt(SessionConfig::new(), runtime)
+            .with_session_id(job_id.clone());
+        let ctx = SessionContext::new_with_state(session_state);
+
+        let span = span!(Level::INFO, "[Job_id]", job_id);
 
         let _entered = span.enter();
 
-        let plan = request
-            .into_inner()
+        // proto to datafusion plan
+        let plan = node
             .try_into_physical_plan(&ctx, &ctx.runtime_env(), &DefaultPhysicalExtensionCodec {})
             .context(ExecutionPlanTryIntoSnafu {})?;
 
@@ -78,10 +86,11 @@ impl BeConnectBridgeService {
         let dp = DisplayableExecutionPlan::new(plan.as_ref());
 
         info!(
-            "Receive Execution Plan from FE, start to execute plan: {}",
+            "Receive Execution Plan from FE, start to execute plan:\n {}",
             dp.indent(true)
         );
 
+        // execute execution plan and return a stream
         let rx = self.execute_task(plan).await?;
 
         Ok(Response::new(rx))
@@ -130,41 +139,59 @@ impl BeConnectBridgeService {
         Ok(Response::new(info))
     }
 
-    pub async fn execute_task(
+    async fn execute_task(
         &self,
         plan: Arc<dyn ExecutionPlan>,
-    ) -> super::Result<ReceiverStream<Result<RowDisplayResult, Status>>> {
+    ) -> super::Result<ReceiverStream<Result<ExecQueryResponse, Status>>> {
         let tc = Arc::new(TaskContext::default());
 
-        let rbs = execute_stream(plan, tc).context(ExecuteStreamSnafu {})?;
+        // Attention! Here was expected to asynchronous return results, but found that
+        // if you return the result after the format, because the stream is not parsed,
+        // do not know the length of all the values in the table,
+        // so wait until the future to return the record batch proto message, and then enable the async!
 
-        let rs = stream_to_receiver(rbs, |item| {
-            Ok(RowDisplayResult::from(
-                map_result_to_status_err(item_to_string(item))?.as_bytes(),
-            ))
-        })
-        .await?;
 
-        info!("Execution complete!");
+        // let mut rb_stream = execute_stream(plan, tc).context(ExecuteStreamSnafu {})?;
+        //
+        // let (tx, rx) = mpsc::channel(1000);
+        //
+        // //
+        // tokio::spawn(async move {
+        //     send_channel_message(
+        //         &tx,
+        //         format_columns_to_query_response("Query Result", &rb_stream.schema()),
+        //     )
+        //     .await;
+        //     while let Some(item) = rb_stream.next().await {
+        //         let resp = format_batch_to_query_response(&map_result_to_status_err(item)?);
+        //         send_channel_message(&tx, resp).await;
+        //     }
+        //     info!("Finished to send execution response!");
+        // });
 
-        Ok(rs)
+
+        let (tx, rx) = mpsc::channel(1000);
+
+        let rbs = collect(plan.clone(), tc).await.context(ExecuteStreamSnafu {})?;
+
+        let msg = format_all_batch_to_query_response(&rbs);
+
+        send_channel_message(&tx, msg).await;
+
+        info!("Finished to send execution response!, return count:{}", rbs.len());
+
+        Ok(ReceiverStream::new(rx))
     }
 }
 
-fn item_to_string(rb: datafusion::error::Result<RecordBatch>) -> datafusion::error::Result<String> {
-    let display = &[rb?];
-    Ok(pretty_format_batches(display)?.to_string())
-}
-
-fn map_result_to_status_err<T, E>(r: Result<T, E>) -> Result<T, Status>
-where
-    snafu::Report<E>: std::fmt::Display,
-{
-    r.map_err(|e| {
-        let es = snafu::Report::from_error(e).to_string();
-        error!("{}", es);
-        Status::internal(es)
-    })
+async fn send_channel_message<T>(tx: &Sender<T>, resp: T) {
+    match tx.send(resp).await {
+        Ok(_) => {}
+        //TODO how to handler async error!
+        Err(_e) => {
+            info!("Failed to send message");
+        }
+    };
 }
 
 /// map stream to [`ReceiverStream`]
@@ -176,7 +203,7 @@ where
     F: FnMut(T) -> S + Send + 'static,
     T: Send + 'static,
     K: Stream<Item = T> + Unpin + Send + 'static,
-    S: Send + 'static
+    S: Send + 'static,
 {
     let (tx, rx) = mpsc::channel(1000000);
 

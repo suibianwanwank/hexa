@@ -91,11 +91,11 @@
   <!--   <property name="headerFile" value="${checkstyle.header.file}"/> -->
   <!--   <property name="fileExtensions" value="java"/> -->
   <!-- </module> -->
-  <module name="LineLength">
-    <property name="max" value="120"/>
-    <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>
-    <property name="ignorePattern" value="^.*static final.*$"/>
-  </module>
+<!--  <module name="LineLength">-->
+<!--    <property name="max" value="120"/>-->
+<!--    <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>-->
+<!--    <property name="ignorePattern" value="^.*static final.*$"/>-->
+<!--  </module>-->
 
 
 

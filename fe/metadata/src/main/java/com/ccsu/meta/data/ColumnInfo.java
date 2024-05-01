@@ -1,14 +1,9 @@
 package com.ccsu.meta.data;
 
-import arrow.datafusion.protobuf.ArrowType;
 import com.ccsu.meta.type.arrow.ArrowTypeEnum;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.Map;
-
 
 @Data
 @NoArgsConstructor

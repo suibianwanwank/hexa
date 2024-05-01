@@ -1,6 +1,5 @@
 package program.physical.rel;
 
-import arrow.datafusion.protobuf.*;
 import com.ccsu.pojo.DatasourceConfig;
 import com.google.common.collect.ImmutableList;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -10,13 +9,11 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataTypeField;
 
 import java.util.List;
 
 import static com.ccsu.pojo.DatasourceType.transformToProtoSourceType;
 import static program.physical.rel.PhysicalPlanTransformUtil.buildRelNodeSchema;
-import static program.physical.rel.PhysicalPlanTransformUtil.transformRelTypeToArrowType;
 
 public class EnumerableSqlScan
         extends EnumerableTableScan
@@ -61,9 +58,9 @@ public class EnumerableSqlScan
     }
 
     @Override
-    public PhysicalPlanNode transformToDataFusionNode() {
+    public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
 
-        SourceScanConfig.Builder scanConfig = SourceScanConfig.newBuilder()
+        proto.datafusion.SourceScanConfig.Builder scanConfig = proto.datafusion.SourceScanConfig.newBuilder()
                 .setHost(config.getHost())
                 .setPort(Integer.parseInt(config.getPort()))
                 .setUsername(config.getUsername())
@@ -76,13 +73,13 @@ public class EnumerableSqlScan
         }
 
 
-        Schema.Builder schema = buildRelNodeSchema(getTable().getRowType().getFieldList());
-        SqlScanExecNode.Builder builder = SqlScanExecNode.newBuilder()
+        proto.datafusion.Schema.Builder schema = buildRelNodeSchema(getTable().getRowType().getFieldList());
+        proto.datafusion.SqlScanExecNode.Builder builder = proto.datafusion.SqlScanExecNode.newBuilder()
                 .setConfig(scanConfig)
                 .setSchema(schema)
                 .addSql(sql);
 
-        return PhysicalPlanNode.newBuilder()
+        return proto.datafusion.PhysicalPlanNode.newBuilder()
                 .setSqlScan(builder)
                 .build();
     }

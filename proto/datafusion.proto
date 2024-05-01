@@ -21,8 +21,7 @@ syntax = "proto3";
 package datafusion;
 
 option java_multiple_files = true;
-option java_package = "arrow.datafusion.protobuf";
-option java_outer_classname = "DatafusionProto";
+option java_package = "proto.datafusion";
 
 message ColumnRelation {
   string relation = 1;
