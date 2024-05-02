@@ -6,6 +6,12 @@ import com.ccsu.common.pool.CommandPool;
 import com.ccsu.meta.ExtendCatalogReader;
 import com.ccsu.meta.type.ArrowTypeFactory;
 import com.ccsu.meta.type.ArrowTypeMapping;
+import com.ccsu.observer.JobProfileObserver;
+import com.ccsu.observer.LoggerRecordObserver;
+import com.ccsu.profile.JobProfile;
+import com.ccsu.store.api.StoreManager;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import observer.SqlJobObserver;
 import com.ccsu.option.OptionManager;
 import com.ccsu.parser.CalciteSqlParser;
@@ -38,15 +44,18 @@ public class SqlJobManager
     private final CommandPool commandPool;
     private final GrpcProvider grpcProvider;
     private final BackEndConfig backEndConfig;
+    private final StoreManager storeManager;
 
     @Inject
     public SqlJobManager(MetadataService metadataService,
+                         StoreManager storeManager,
                          OptionManager optionManager,
                          CommandPool commandPool,
                          BackEndConfig backEndConfig,
                          GrpcProvider grpcProvider) {
         this(
                 metadataService,
+                storeManager,
                 optionManager,
                 new CalciteSqlParser(),
                 commandPool,
@@ -56,6 +65,7 @@ public class SqlJobManager
     }
 
     public SqlJobManager(MetadataService metadataService,
+                         StoreManager storeManager,
                          OptionManager optionManager,
                          SqlParser sqlParser,
                          CommandPool commandPool,
@@ -63,6 +73,7 @@ public class SqlJobManager
                          BackEndConfig backEndConfig,
                          GrpcProvider grpcProvider) {
         this.metadataService = metadataService;
+        this.storeManager = storeManager;
         this.optionManager = optionManager;
         this.sqlParser = sqlParser;
         this.relDataTypeFactory = relDataTypeFactory;
@@ -96,7 +107,17 @@ public class SqlJobManager
                 ExtendCatalogReader.create(clusterId, relDataTypeFactory,
                         metadataService, arrowTypeMapping, Collections.emptyList(), true);
         SqlValidator sqlValidator = ValidatorProvider.create(catalogReader);
-        return new QueryContext(sql, clusterId, JobUtil.generateSqlJobId(),
-                sqlParser, new VolcanoRelOptCostFactory(), catalogReader, optionManager, sqlValidator, observers, metadataService);
+        JobProfile jobProfile = new JobProfile(sql);
+        String jobId = JobUtil.generateSqlJobId();
+
+
+        List<SqlJobObserver> observerList = Lists.newArrayList();
+        observerList.addAll(observers);
+        observerList.add(JobProfileObserver.newJobProfileObserver(jobId, jobProfile, storeManager));
+        observerList.add(LoggerRecordObserver.newLoggerObserver(jobId));
+
+        return new QueryContext(sql, clusterId, jobId, sqlParser,
+                new VolcanoRelOptCostFactory(), catalogReader, optionManager,
+                sqlValidator, ImmutableList.copyOf(observerList), metadataService, storeManager, jobProfile);
     }
 }

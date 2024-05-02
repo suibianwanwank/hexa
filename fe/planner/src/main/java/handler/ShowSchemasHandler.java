@@ -9,7 +9,7 @@ import context.QueryContext;
 
 import java.util.List;
 
-import static handler.HandlerUtil.generateCenterTable;
+import static com.ccsu.utils.TableFormatUtil.generateCenterTable;
 
 public class ShowSchemasHandler
         implements SqlHandler<String, SqlShowSchemas, QueryContext> {

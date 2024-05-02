@@ -12,6 +12,7 @@ import com.ccsu.meta.data.SchemaInfo;
 import com.ccsu.meta.data.TableInfo;
 import com.ccsu.option.OptionManager;
 import com.ccsu.option.manager.SystemOptionManager;
+import com.ccsu.profile.JobProfile;
 import com.ccsu.store.api.StoreManager;
 import com.ccsu.store.rocksDB.RocksDBManager;
 import com.google.common.collect.ImmutableList;
@@ -92,7 +93,7 @@ public class TestFixture {
         queryContext = new QueryContext(null,
                 DEFAULT_CLUSTER, null,
                 sqlParser, null,
-                catalogReader, optionManager, sqlValidator, Lists.newArrayList(), metadataService);
+                catalogReader, optionManager, sqlValidator, Lists.newArrayList(), metadataService, storeManager, new JobProfile("111"));
         sqlConverter = SqlConverter.of(queryContext, getQueryContext().getRelOptCostFactory());
     }
 

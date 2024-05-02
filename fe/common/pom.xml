@@ -77,6 +77,11 @@
             <artifactId>value-annotations</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.github.freva</groupId>
+            <artifactId>ascii-table</artifactId>
+            <version>1.8.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>32.0.1-jre</version>

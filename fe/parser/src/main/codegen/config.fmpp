@@ -28,6 +28,8 @@ data: {
         "com.ccsu.parser.sqlnode.SqlShowCreateCatalog",
         "com.ccsu.parser.sqlnode.SqlCreateCatalog",
         "com.ccsu.parser.sqlnode.SqlRefreshTable",
+        "com.ccsu.parser.sqlnode.SqlProfileExplain",
+        "com.ccsu.parser.sqlnode.SqlShowProfile",
       ]
 
       # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is
@@ -40,6 +42,7 @@ data: {
         "CATALOGS",
         "SCHEMAS",
         "REFRESH",
+        "PROFILE",
       ]
 
       # List of keywords from "keywords" section that are not reserved.
@@ -405,6 +408,7 @@ data: {
         "ShowMetadata()"
         "SqlCreateCatalog()"
         "RefreshMetadata()"
+        "ExplainSqlPlan()"
       ]
 
       # List of methods for parsing custom literals.

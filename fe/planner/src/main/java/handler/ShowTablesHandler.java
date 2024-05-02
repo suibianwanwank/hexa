@@ -4,6 +4,7 @@ import com.ccsu.meta.data.MetaIdentifier;
 import com.ccsu.meta.data.MetaPath;
 import com.ccsu.meta.data.TableInfo;
 import com.ccsu.parser.sqlnode.SqlShowTables;
+import com.ccsu.utils.TableFormatUtil;
 import context.QueryContext;
 
 import java.util.ArrayList;
@@ -29,6 +30,6 @@ public class ShowTablesHandler
             data[i][0] = tableInfo.getTableName();
         }
 
-        return HandlerUtil.generateCenterTable(RETURN_COLUMNS, data);
+        return TableFormatUtil.generateCenterTable(RETURN_COLUMNS, data);
     }
 }

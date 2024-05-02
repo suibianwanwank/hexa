@@ -15,6 +15,19 @@
 // limitations under the License.
 -->
 
+SqlNode ExplainSqlPlan():
+{
+    SqlParserPos pos;
+    SqlNode sqlStatement;
+}
+{
+    <EXPLAIN> { pos = getPos(); }
+          sqlStatement = SqlQueryOrDml()
+          {
+             return new SqlProfileExplain(pos, sqlStatement);
+          }
+}
+
 SqlNode SetConfig():
 {
     SqlParserPos pos;
@@ -115,6 +128,11 @@ SqlNode ShowMetadata():
        <COLUMNS> <FROM> sourceName = CompoundIdentifier()
            {
                return new SqlShowColumns(pos, sourceName);
+           }
+       |
+       <PROFILE> sourceName = CompoundIdentifier()
+           {
+               return new SqlShowProfile(pos, sourceName);
            }
     )
 }

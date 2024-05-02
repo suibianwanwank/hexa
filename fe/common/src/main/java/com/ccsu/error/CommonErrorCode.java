@@ -41,6 +41,8 @@ public enum CommonErrorCode {
 
     JOB_FUTURE_GET(0x0000_00015, CommonErrorType.SYSTEM_ERROR),
 
+    JOB_PROFILE_NOT_EXIST(0x0000_00016, CommonErrorType.SYSTEM_ERROR),
+
     UNKNOWN_ERROR(0x9999_9999, CommonErrorType.UNKNOWN_ERROR);
 
     private final int code;

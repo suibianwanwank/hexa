@@ -24,9 +24,9 @@ public class QueryPlanHandler
 
         context.setOriginRelNode(originRelNode);
 
-        RelNode preLogical = QueryPlannerProgram.PRE_SIMPLIFY_PROGRAM.optimize(originRelNode, context);
+        RelNode preLogical = QueryPlannerProgram.LOGICAL_PLAN_OPTIMIZE_PROGRAM.optimize(originRelNode, context);
 
-        RelNode physicalPlan = QueryPlannerProgram.LOGICAL_OPTIMIZE_PROGRAM.optimize(preLogical, context);
+        RelNode physicalPlan = QueryPlannerProgram.LOGICAL_TO_PHYSICAL_PLAN_PROGRAM.optimize(preLogical, context);
 
         RelNode lastPlan = QueryPlannerProgram.PHYSICAL_OPTIMIZE_PROGRAM.optimize(physicalPlan, context);
 

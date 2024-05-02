@@ -1,5 +1,6 @@
 package program;
 
+import com.ccsu.profile.Phrase;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import program.logical.LogicalHepProgram;
 import program.logical.LogicalVolcanoProgram;
@@ -11,8 +12,9 @@ public class QueryPlannerProgram {
     private static final String EXPRESSION_REDUCE = "EXPRESSION_REDUCE";
     private static final String WINDOW_REWRITE = "WINDOW_REWRITE";
 
-    public static final RuleOptimizeProgram PRE_SIMPLIFY_PROGRAM =
+    public static final RuleOptimizeProgram LOGICAL_PLAN_OPTIMIZE_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
+                    .setPhrase(Phrase.LOGICAL_PLAN_OPTIMIZE)
                     .addLast(new ArrowTypeDeriveProgram())
                     .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
                             .setHepMatchOrder(HepMatchOrder.ARBITRARY)
@@ -30,28 +32,20 @@ public class QueryPlannerProgram {
                             .setName(WINDOW_REWRITE)
                             .build())
                     .addLast(new DecorateProgram())
-                    .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
-                            .setHepMatchOrder(HepMatchOrder.ARBITRARY)
-                            .add(LogicalCoreRules.EXPRESSION_REDUCE)
-                            .add(LogicalCoreRules.CONSTANT_REDUCTION_RULES)
-                            .setName(EXPRESSION_REDUCE)
-                            .build())
                     .build();
 
     /**
      * Program of Optimization rules for physical logical plan.
-     *
      * Optimize the logical plan and finally translate it into a physical execution plan through CBO.
      */
-    public static final RuleOptimizeProgram LOGICAL_OPTIMIZE_PROGRAM =
+    public static final RuleOptimizeProgram LOGICAL_TO_PHYSICAL_PLAN_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
+                    .setPhrase(Phrase.LOGICAL_TO_PHYSICAL_PLAN)
                     .addLast(new LogicalVolcanoProgram.LogicalVolcanoProgramBuilder()
                             .add(LogicalCoreRules.LOGICAL_BASED_RULES)
-//                            .add(LogicalCoreRules.EXPRESSION_REDUCE)
-//                            .add(LogicalCoreRules.CONSTANT_REDUCTION_RULES)
                             .add(LogicalCoreRules.LOGICAL_TO_PHYSICAL_RULES)
                             .build())
-//                    .addLast(RenameProjectRule.INSTANCE)
+                    .addLast(RenameProjectRule.INSTANCE)
                     .build();
 
     /**
@@ -61,6 +55,7 @@ public class QueryPlannerProgram {
      */
     public static final RuleOptimizeProgram PHYSICAL_OPTIMIZE_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
+                    .setPhrase(Phrase.PHYSICAL_PLAN_OPTIMIZE)
                     .addLast(ExtendPhysicalRelTransformRule.INSTANCE)
                     .build();
 }

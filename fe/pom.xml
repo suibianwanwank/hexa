@@ -399,9 +399,9 @@
             <plugins>
                 <plugin>
                     <configuration>
-                        <cfgFile>src/main/extend/config.fmpp</cfgFile>
+                        <cfgFile>src/main/codegen/config.fmpp</cfgFile>
                         <outputDirectory>target/generated-sources/fmpp</outputDirectory>
-                        <templateDirectory>${project.build.directory}/extend/template</templateDirectory>
+                        <templateDirectory>${project.build.directory}/codegen/template</templateDirectory>
                     </configuration>
                     <groupId>com.googlecode.fmpp-maven-plugin</groupId>
                     <artifactId>fmpp-maven-plugin</artifactId>

@@ -46,6 +46,7 @@ public class MongoDBManager
     private MongoClient mongoClient;
 
     private final Cache<String, DataStore> mongoDBStoreMaps = CacheBuilder.newBuilder()
+            .maximumSize(10)
             .removalListener((RemovalListener<String, DataStore>) notification -> {
                 try {
                     notification.getValue().close();

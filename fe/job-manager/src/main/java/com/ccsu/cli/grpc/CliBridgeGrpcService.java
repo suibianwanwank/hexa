@@ -7,7 +7,9 @@ import observer.SqlJobObserver;
 import proto.cli.CliBridgeGrpc.CliBridgeImplBase;
 import proto.cli.sqlJobRequest;
 import proto.cli.CliDisplayResponse;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CliBridgeGrpcService extends CliBridgeImplBase {
@@ -24,9 +26,8 @@ public class CliBridgeGrpcService extends CliBridgeImplBase {
     @Override
     public void submitSqlJob(sqlJobRequest request,
                              StreamObserver<CliDisplayResponse> responseObserver) {
-        String sql = request.getSql();
-         List<SqlJobObserver> observerList = new ArrayList<>();
-        observerList.add(new GrpcStreamObserver(responseObserver));
-        jobManager.submitSqlJob(new UserRequest(DEFAULT_CLUSTER), sql, observerList);
+        jobManager.submitSqlJob(new UserRequest(DEFAULT_CLUSTER),
+                request.getSql(),
+                Collections.singletonList(new GrpcStreamObserver(responseObserver)));
     }
 }

@@ -5,6 +5,7 @@ import com.ccsu.meta.data.MetaIdentifier;
 import com.ccsu.meta.data.MetaPath;
 import com.ccsu.meta.data.TableInfo;
 import com.ccsu.parser.sqlnode.SqlShowColumns;
+import com.ccsu.utils.TableFormatUtil;
 import context.QueryContext;
 
 import java.util.ArrayList;
@@ -35,6 +36,6 @@ public class ShowColumnsHandler
             data[i][2] = String.valueOf(columnInfo.isNullable());
         }
 
-        return HandlerUtil.generateCenterTable(RETURN_COLUMNS, data);
+        return TableFormatUtil.generateCenterTable(RETURN_COLUMNS, data);
     }
 }

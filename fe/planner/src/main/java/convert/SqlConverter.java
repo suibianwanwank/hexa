@@ -1,5 +1,10 @@
 package convert;
 
+import com.ccsu.profile.JobProfile;
+import com.ccsu.profile.Phrase;
+import com.ccsu.profile.ProfileUtil;
+import com.facebook.airlift.log.Logger;
+import com.google.common.base.Stopwatch;
 import config.SqlToRelNodeConfig;
 import context.QueryContext;
 import org.apache.calcite.plan.RelOptCluster;
@@ -18,7 +23,11 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import program.logical.LogicalVolcanoPlanner;
 
+import java.util.concurrent.TimeUnit;
+
 public class SqlConverter {
+    private static final Logger LOGGER = Logger.get(SqlConverter.class);
+
     private final SqlValidator sqlValidator;
 
     private final Prepare.CatalogReader catalogReader;
@@ -29,6 +38,8 @@ public class SqlConverter {
 
     private final RelOptCluster relOptCluster;
 
+    private final JobProfile jobProfile;
+
     public static SqlConverter of(QueryContext queryContext, RelOptCostFactory relOptCostFactory) {
         Prepare.CatalogReader catalogReader = queryContext.getCatalogReader();
 
@@ -37,20 +48,23 @@ public class SqlConverter {
 
         RelOptCluster relOptCluster = RelOptClusterProvider.createRelOptCluster(planner, rexBuilder);
         return new SqlConverter(queryContext.getSqlValidator(),
-                catalogReader, relOptCostFactory, planner, relOptCluster);
+                catalogReader, relOptCostFactory, planner, relOptCluster, queryContext.getJobProfile());
     }
 
-    public SqlConverter(SqlValidator sqlValidator, Prepare.CatalogReader catalogReader,
-                        RelOptCostFactory relOptCostFactory, RelOptPlanner planner, RelOptCluster relOptCluster) {
+    public SqlConverter(SqlValidator sqlValidator, Prepare.CatalogReader catalogReader, RelOptCostFactory relOptCostFactory,
+                        RelOptPlanner planner, RelOptCluster relOptCluster, JobProfile jobProfile) {
         this.sqlValidator = sqlValidator;
         this.catalogReader = catalogReader;
         this.relOptCostFactory = relOptCostFactory;
         this.planner = planner;
         this.relOptCluster = relOptCluster;
+        this.jobProfile = jobProfile;
     }
 
 
     public RelNode convertQuery(SqlNode sqlNode, boolean expand) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         SqlToRelConverter.Config config = new SqlToRelNodeConfig()
                 .withTrimUnusedFields(true)
                 .withExpand(expand)
@@ -71,8 +85,12 @@ public class SqlConverter {
 
         RelRoot root = sqlToRelConverter.convertQuery(sqlNode, false, false);
 
+        RelNode relNode = RelRoot.of(root.rel, root.validatedRowType, root.kind).rel;
 
-        return RelRoot.of(root.rel, root.validatedRowType, root.kind).rel;
+        ProfileUtil.addPlanPhraseJobProfile(jobProfile,
+                Phrase.AST_TO_LOGICAL_PLAN, stopwatch.elapsed(TimeUnit.NANOSECONDS), relNode);
+
+        return relNode;
     }
 
     public RelOptCostFactory getRelOptCostFactory() {

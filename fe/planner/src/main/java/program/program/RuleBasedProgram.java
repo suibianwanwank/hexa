@@ -21,20 +21,4 @@ public abstract class RuleBasedProgram implements RuleOptimizeProgram {
         ruleSet.forEach(rules::add);
         return true;
     }
-
-    public boolean remove(RelOptRule rule) {
-        requireNonNull(rule);
-        return rules.remove(rule);
-    }
-
-    public boolean remove(RuleSet ruleSet) {
-        requireNonNull(ruleSet);
-        ruleSet.forEach(rules::remove);
-        return true;
-    }
-
-    public Boolean contains(RelOptRule rule) {
-        requireNonNull(rule);
-        return rules.contains(rule);
-    }
 }

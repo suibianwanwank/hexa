@@ -8,9 +8,4 @@ public class Void {
 
     private Void() {
     }
-
-    @Override
-    public String toString() {
-        return "ok";
-    }
 }

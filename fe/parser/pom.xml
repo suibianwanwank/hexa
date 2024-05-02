@@ -61,10 +61,10 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/extend/template</outputDirectory>
+                            <outputDirectory>${project.build.directory}/codegen/template</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>src/main/extend/template</directory>
+                                    <directory>src/main/codegen/template</directory>
                                     <filtering>true</filtering>
                                 </resource>
                             </resources>

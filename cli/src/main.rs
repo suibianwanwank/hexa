@@ -192,8 +192,6 @@ struct SqlCliHelper {
     #[rustyline(Completer)]
     completer: HintCompleter,
     highlighter: MatchingBracketHighlighter,
-    // #[rustyline(Validator)]
-    // validator: MatchingBracketValidator,
     #[rustyline(Hinter)]
     hinter: SqlCliHinter,
     colored_prompt: String,
@@ -249,13 +247,9 @@ impl SqlCliHelper {
 
     fn validate_input(&self, input: &str) -> rustyline::Result<ValidationResult> {
         if let Some(_sql) = input.strip_suffix(';') {
-            Ok(ValidationResult::Valid(None))
-        } else if input.starts_with('\\') {
-            // command
-            Ok(ValidationResult::Valid(None))
-        } else {
-            Ok(ValidationResult::Incomplete)
+            return Ok(ValidationResult::Valid(None));
         }
+        Ok(ValidationResult::Incomplete)
     }
 }
 
@@ -277,7 +271,7 @@ impl Highlighter for SqlCliHelper {
     }
 
     fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> {
-        let mut result = String::new();
+        let mut result = String::with_capacity(line.len() * 2);
 
         // split rows by spaces
         let tokens = line.split_inclusive(' ');

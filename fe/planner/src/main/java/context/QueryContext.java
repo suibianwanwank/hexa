@@ -3,6 +3,8 @@ package context;
 import com.ccsu.MetadataService;
 import com.ccsu.option.OptionManager;
 import com.ccsu.parser.SqlParser;
+import com.ccsu.profile.JobProfile;
+import com.ccsu.store.api.StoreManager;
 import com.google.common.base.Stopwatch;
 import observer.SqlJobObserver;
 import org.apache.calcite.plan.RelOptCostFactory;
@@ -23,11 +25,12 @@ public class QueryContext {
     private final SqlParser sqlParser;
     private final SqlValidator sqlValidator;
     private final Prepare.CatalogReader catalogReader;
+    private final StoreManager storeManager;
     private final OptionManager optionManager;
-    private Stopwatch stopwatch;
     private final List<SqlJobObserver> observers;
     private final MetadataService metadataService;
     private RelNode originRelNode;
+    private final JobProfile jobProfile;
 
     public QueryContext(String sql,
                         String clusterId,
@@ -38,7 +41,9 @@ public class QueryContext {
                         OptionManager optionManager,
                         SqlValidator sqlValidator,
                         List<SqlJobObserver> observers,
-                        MetadataService metadataService) {
+                        MetadataService metadataService,
+                        StoreManager storeManager,
+                        JobProfile jobProfile) {
         this.sql = sql;
         this.clusterId = clusterId;
         this.sqlJobId = sqlJobId;
@@ -48,8 +53,9 @@ public class QueryContext {
         this.sqlValidator = sqlValidator;
         this.optionManager = optionManager;
         this.metadataService = metadataService;
-        this.stopwatch = Stopwatch.createUnstarted();
+        this.storeManager = storeManager;
         this.observers = observers;
+        this.jobProfile = jobProfile;
     }
 
     public SqlParser getSqlParser() {
@@ -80,10 +86,6 @@ public class QueryContext {
         return sqlJobId;
     }
 
-    public Stopwatch getStopwatch() {
-        return stopwatch;
-    }
-
     public OptionManager getOptionManager() {
         return optionManager;
     }
@@ -102,5 +104,13 @@ public class QueryContext {
 
     public void setOriginRelNode(RelNode originRelNode) {
         this.originRelNode = originRelNode;
+    }
+
+    public JobProfile getJobProfile() {
+        return jobProfile;
+    }
+
+    public StoreManager getStoreManager() {
+        return storeManager;
     }
 }

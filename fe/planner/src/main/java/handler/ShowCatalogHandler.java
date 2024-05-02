@@ -8,7 +8,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 
 import java.util.List;
 
-import static handler.HandlerUtil.generateCenterTable;
+import static com.ccsu.utils.TableFormatUtil.generateCenterTable;
 
 public class ShowCatalogHandler
         implements SqlHandler<String, SqlShowCatalogs, QueryContext> {

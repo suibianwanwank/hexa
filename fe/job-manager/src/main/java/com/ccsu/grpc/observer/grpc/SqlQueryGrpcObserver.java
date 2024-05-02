@@ -1,5 +1,8 @@
 package com.ccsu.grpc.observer.grpc;
 
+import com.ccsu.manager.JobUtil;
+import com.google.common.util.concurrent.SettableFuture;
+import handler.Void;
 import io.grpc.stub.StreamObserver;
 import observer.SqlJobObserver;
 
@@ -9,7 +12,10 @@ public class SqlQueryGrpcObserver implements StreamObserver<proto.execute.ExecQu
 
     private final List<SqlJobObserver> observers;
 
-    public SqlQueryGrpcObserver(List<SqlJobObserver> observers) {
+    private final SettableFuture<Void> future;
+
+    public SqlQueryGrpcObserver(SettableFuture<Void> future, List<SqlJobObserver> observers) {
+        this.future = future;
         this.observers = observers;
     }
 
@@ -23,15 +29,11 @@ public class SqlQueryGrpcObserver implements StreamObserver<proto.execute.ExecQu
 
     @Override
     public void onError(Throwable throwable) {
-        for (SqlJobObserver observer : observers) {
-            observer.onError(throwable);
-        }
+        future.setException(throwable);
     }
 
     @Override
     public void onCompleted() {
-        for (SqlJobObserver observer : observers) {
-            observer.onCompleted();
-        }
+        JobUtil.finishVoidFuture(future);
     }
 }
