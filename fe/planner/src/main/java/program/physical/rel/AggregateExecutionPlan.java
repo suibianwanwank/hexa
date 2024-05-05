@@ -1,6 +1,9 @@
 package program.physical.rel;
 
-import org.apache.calcite.adapter.enumerable.EnumerableAggregate;
+import com.google.common.collect.ImmutableList;
+import org.apache.calcite.adapter.enumerable.EnumerableAggregateBase;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
@@ -18,40 +21,31 @@ import java.util.List;
 
 import static program.physical.rel.PhysicalPlanTransformUtil.*;
 
-public class ExtendEnumerableAggregate
-        extends EnumerableAggregate
-        implements PhysicalPlan {
+public class AggregateExecutionPlan
+        extends EnumerableAggregateBase
+        implements ExecutionPlan, EnumerableRel {
 
-    public static ExtendEnumerableAggregate create(EnumerableAggregate enumerableAggregate)
-            throws InvalidRelException {
-        return new ExtendEnumerableAggregate(enumerableAggregate.getCluster(),
-                enumerableAggregate.getTraitSet(),
-                enumerableAggregate.getInput(),
-                enumerableAggregate.getGroupSet(),
-                enumerableAggregate.getGroupSets(),
-                enumerableAggregate.getAggCallList());
-    }
-
-    private ExtendEnumerableAggregate(RelOptCluster cluster,
-                                      RelTraitSet traitSet,
-                                      RelNode input,
-                                      ImmutableBitSet groupSet,
-                                      @Nullable List<ImmutableBitSet> groupSets,
-                                      List<AggregateCall> aggCalls) throws InvalidRelException {
-        super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    public AggregateExecutionPlan(RelOptCluster cluster,
+                                   RelTraitSet traitSet,
+                                   RelNode input,
+                                   ImmutableBitSet groupSet,
+                                   @Nullable List<ImmutableBitSet> groupSets,
+                                   List<AggregateCall> aggCalls) throws InvalidRelException {
+        super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     }
 
     @Override
     public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
         proto.datafusion.AggregateExecNode.Builder aggregateNode = proto.datafusion.AggregateExecNode.newBuilder();
 
-        proto.datafusion.PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode input = ((ExecutionPlan) getInput()).transformToDataFusionNode();
         aggregateNode.setInput(input);
 
 
         List<RelDataTypeField> inputFields = getInput().getRowType().getFieldList();
+        List<RelDataTypeField> fields = getRowType().getFieldList();
         for (Integer bitSet : getGroupSet()) {
-            RexInputRef inputRef = RexInputRef.of(bitSet, getRowType().getFieldList());
+            RexInputRef inputRef = RexInputRef.of(bitSet, fields);
             proto.datafusion.PhysicalColumn.Builder column = proto.datafusion.PhysicalColumn
                     .newBuilder()
                     .setIndex(inputRef.getIndex())
@@ -60,9 +54,12 @@ public class ExtendEnumerableAggregate
             aggregateNode.addGroupExprName(inputFields.get(inputRef.getIndex()).getName());
             aggregateNode.addGroups(false);
         }
+
+
         for (AggregateCall call : getAggCallList()) {
             aggregateNode.addAggrExpr(transformAggFunction(call, getInput().getRowType().getFieldList()));
-            aggregateNode.addAggrExprName(call.getName());
+            aggregateNode.addAggrExprName(call.getName() !=null ? call.getName()
+                    : fields.get(fields.size() - getGroupCount()).getName());
             aggregateNode.addFilterExpr(MaybeFilter.newBuilder().build());
         }
 
@@ -73,15 +70,20 @@ public class ExtendEnumerableAggregate
     }
 
     @Override
-    public EnumerableAggregate copy(RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet,
+    public AggregateExecutionPlan copy(RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet,
                                     @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
         try {
-            return new ExtendEnumerableAggregate(getCluster(), traitSet, input,
+            return new AggregateExecutionPlan(getCluster(), traitSet, input,
                     groupSet, groupSets, aggCalls);
         } catch (InvalidRelException e) {
             // Semantic error not possible. Must be a bug. Convert to
             // internal error.
             throw new AssertionError(e);
         }
+    }
+
+    @Override
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+        return null;
     }
 }

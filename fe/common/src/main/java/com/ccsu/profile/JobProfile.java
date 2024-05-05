@@ -87,4 +87,8 @@ public class JobProfile {
 
         return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
     }
+
+    public long getElapsedTime() {
+        return endTime - beginTime;
+    }
 }

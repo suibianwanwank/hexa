@@ -24,7 +24,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
-import program.physical.rel.ExtendEnumerableValues;
+import program.physical.rel.ValuesExecutionPlan;
 
 
 
@@ -59,8 +59,8 @@ public class EnumerableValuesRule extends ConverterRule {
     @Override
     public RelNode convert(RelNode rel) {
         final Values logicalValues = (Values) rel;
-        final ExtendEnumerableValues enumerableValues =
-                ExtendEnumerableValues.create(logicalValues.getCluster(),
+        final ValuesExecutionPlan enumerableValues =
+                ValuesExecutionPlan.create(logicalValues.getCluster(),
                         logicalValues.getRowType(), logicalValues.getTuples());
         return enumerableValues.copy(
                 logicalValues.getTraitSet().replace(EnumerableConvention.INSTANCE),

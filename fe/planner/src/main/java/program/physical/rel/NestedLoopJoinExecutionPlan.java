@@ -8,20 +8,19 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 
-import java.util.List;
 import java.util.Set;
 
 import static program.physical.rel.PhysicalPlanTransformUtil.transformJoinType;
 import static program.physical.rel.PhysicalPlanTransformUtil.transformRexNodeToJoinFilter;
 
-public class ExtendEnumerableNestedLoopJoin
+public class NestedLoopJoinExecutionPlan
         extends EnumerableNestedLoopJoin
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
 
-    public static ExtendEnumerableNestedLoopJoin create(
+    public static NestedLoopJoinExecutionPlan create(
             EnumerableNestedLoopJoin enumerableNestedLoopJoin) {
-        return new ExtendEnumerableNestedLoopJoin(enumerableNestedLoopJoin.getCluster(),
+        return new NestedLoopJoinExecutionPlan(enumerableNestedLoopJoin.getCluster(),
                 enumerableNestedLoopJoin.getTraitSet(),
                 enumerableNestedLoopJoin.getLeft(),
                 enumerableNestedLoopJoin.getRight(),
@@ -30,20 +29,20 @@ public class ExtendEnumerableNestedLoopJoin
                 enumerableNestedLoopJoin.getJoinType());
     }
 
-    protected ExtendEnumerableNestedLoopJoin(RelOptCluster cluster,
-                                             RelTraitSet traits,
-                                             RelNode left,
-                                             RelNode right,
-                                             RexNode condition,
-                                             Set<CorrelationId> variablesSet,
-                                             JoinRelType joinType) {
+    protected NestedLoopJoinExecutionPlan(RelOptCluster cluster,
+                                          RelTraitSet traits,
+                                          RelNode left,
+                                          RelNode right,
+                                          RexNode condition,
+                                          Set<CorrelationId> variablesSet,
+                                          JoinRelType joinType) {
         super(cluster, traits, left, right, condition, variablesSet, joinType);
     }
 
     @Override
     public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
-        proto.datafusion.PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToDataFusionNode();
-        proto.datafusion.PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode leftNode = ((ExecutionPlan) getLeft()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode rightNode = ((ExecutionPlan) getRight()).transformToDataFusionNode();
         proto.datafusion.JoinType joinType = transformJoinType(getJoinType());
 
         proto.datafusion.JoinFilter joinFilter = transformRexNodeToJoinFilter(condition, getRowType().getFieldList(), getLeft().getRowType().getFieldList().size());
@@ -61,7 +60,7 @@ public class ExtendEnumerableNestedLoopJoin
 
     @Override
     public EnumerableNestedLoopJoin copy(RelTraitSet traitSet, RexNode condition, RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
-        return new ExtendEnumerableNestedLoopJoin(getCluster(), traitSet, left, right,
+        return new NestedLoopJoinExecutionPlan(getCluster(), traitSet, left, right,
                 condition, variablesSet, joinType);
     }
 }

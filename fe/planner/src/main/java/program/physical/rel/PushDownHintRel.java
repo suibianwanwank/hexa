@@ -9,7 +9,7 @@ import java.util.List;
 
 public class PushDownHintRel extends SingleRel {
 
-    private final EnumerableSqlScan tableScan;
+    private final SourceScanExecutionPlan tableScan;
     /**
      * Creates a <code>SingleRel</code>.
      *
@@ -17,7 +17,7 @@ public class PushDownHintRel extends SingleRel {
      * @param traits
      * @param input   Input relational expression
      */
-    public PushDownHintRel(EnumerableSqlScan tableScan, RelOptCluster cluster, RelTraitSet traits, RelNode input) {
+    public PushDownHintRel(SourceScanExecutionPlan tableScan, RelOptCluster cluster, RelTraitSet traits, RelNode input) {
         super(cluster, traits, input);
         this.tableScan = tableScan;
     }
@@ -31,7 +31,7 @@ public class PushDownHintRel extends SingleRel {
         return new PushDownHintRel(tableScan, getCluster(), traitSet, inputs.get(0));
     }
 
-    public EnumerableSqlScan getTableScan() {
+    public SourceScanExecutionPlan getTableScan() {
         return tableScan;
     }
 }

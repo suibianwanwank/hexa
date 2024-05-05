@@ -1,14 +1,27 @@
 package program.rule.shuttle;
 
 import com.ccsu.meta.type.ArrowDataType;
+import com.ccsu.meta.type.arrow.ArrowTypeEnum;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.*;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeName;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
 
 public class DeriveArrowTypeShuttle extends RexShuttle {
+
+    private static final Map<SqlTypeName, ArrowTypeEnum> DEFAULT_MAP = new HashMap<>();
+
+    static {
+        DEFAULT_MAP.put(SqlTypeName.DECIMAL, ArrowTypeEnum.DECIMAL);
+        DEFAULT_MAP.put(SqlTypeName.CHAR, ArrowTypeEnum.UTF8);
+        DEFAULT_MAP.put(SqlTypeName.VARCHAR, ArrowTypeEnum.UTF8);
+    }
+
 
     public DeriveArrowTypeShuttle(RexBuilder rexBuilder) {
         this.rexBuilder = rexBuilder;
@@ -46,7 +59,7 @@ public class DeriveArrowTypeShuttle extends RexShuttle {
 
     @Override
     public RexNode visitLiteral(RexLiteral literal) {
-        if (literal.getType() instanceof ArrowDataType) {
+        if (literal.getType() instanceof ArrowDataType || typeStack.isEmpty()) {
             return super.visitLiteral(literal);
         }
         return rexBuilder.makeLiteral(literal.getValue2(), typeStack.peek());

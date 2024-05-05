@@ -10,26 +10,23 @@ public class JobProfileObserver implements SqlJobObserver {
 
     private DataIndexStore<String, JobProfile> profileStore;
 
-    private String jobId;
-
     private JobProfile jobProfile;
 
-    public static JobProfileObserver newJobProfileObserver(String jobId, JobProfile jobProfile, StoreManager storeManager){
+    public static JobProfileObserver newJobProfileObserver(JobProfile jobProfile, StoreManager storeManager){
         DataIndexStore<String, JobProfile> dataStore =
                 storeManager.getOrCreateDataIndexStore(ProfileStoreConfig.JOB_PROFILE_CONFIG);
-        return new JobProfileObserver(dataStore, jobId, jobProfile);
+        return new JobProfileObserver(dataStore, jobProfile);
     }
 
-    public JobProfileObserver(DataIndexStore<String, JobProfile> profileStore, String jobId, JobProfile jobProfile) {
+    public JobProfileObserver(DataIndexStore<String, JobProfile> profileStore, JobProfile jobProfile) {
         this.profileStore = profileStore;
-        this.jobId = jobId;
         this.jobProfile = jobProfile;
     }
 
     @Override
-    public void onCompleted() {
+    public void onCompleted(JobContext context) {
         jobProfile.finish();
-        profileStore.put(jobId, jobProfile);
+        profileStore.put(context.getJobId(), jobProfile);
     }
 
     @Override

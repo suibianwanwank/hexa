@@ -6,9 +6,9 @@ public class JobObserverUtil {
     private JobObserverUtil() {
     }
 
-    public static void observerOnJobComplete(List<SqlJobObserver> observers) {
+    public static void observerOnJobComplete(List<SqlJobObserver> observers, SqlJobObserver.JobContext context) {
         for (SqlJobObserver observer : observers) {
-            observer.onCompleted();
+            observer.onCompleted(context);
         }
     }
 

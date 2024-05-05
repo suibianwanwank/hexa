@@ -45,7 +45,9 @@ public class SqlJobExecutor {
     public Void run() {
         try {
             executeSql();
-            JobObserverUtil.observerOnJobComplete(queryContext.getObservers());
+            JobObserverUtil.observerOnJobComplete(queryContext.getObservers(),
+                    new SqlJobObserver.JobContext(queryContext.getSqlJobId(),
+                            queryContext.getJobProfile()));
         } catch (Throwable e) {
             JobObserverUtil.observerOnException(queryContext.getObservers(), e);
         }

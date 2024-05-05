@@ -1,5 +1,5 @@
 package program.physical.rel;
 
-public interface PhysicalPlan {
+public interface ExecutionPlan {
     proto.datafusion.PhysicalPlanNode transformToDataFusionNode();
 }

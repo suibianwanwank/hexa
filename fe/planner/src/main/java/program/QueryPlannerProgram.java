@@ -61,13 +61,13 @@ public class QueryPlannerProgram {
     /**
      *  Program of Optimization rules for physical execution plan.
      *
-     * <p>Note that last rule must be {@link ExtendPhysicalRelTransformRule}.</p>
+     * <p>Note that last rule must be {@link ExecutionPlanTransformRule}.</p>
      */
     public static final RuleOptimizeProgram PHYSICAL_OPTIMIZE_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
                     .setPhrase(Phrase.PHYSICAL_PLAN_OPTIMIZE)
                     .addLast(JDBC_PUSH_DOWN_PROGRAM)
                     .addLast(RemoveSargProgram.DEFAULT)
-                    .addLast(ExtendPhysicalRelTransformRule.INSTANCE)
+                    .addLast(ExecutionPlanTransformRule.INSTANCE)
                     .build();
 }

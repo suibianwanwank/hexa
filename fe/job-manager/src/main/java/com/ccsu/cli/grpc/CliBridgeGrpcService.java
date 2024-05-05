@@ -14,7 +14,6 @@ import java.util.List;
 
 public class CliBridgeGrpcService extends CliBridgeImplBase {
 
-    //TODO If support cluster feature，remove it
     private static final String DEFAULT_CLUSTER = "suibianwanwan33";
     private final JobManager jobManager;
 

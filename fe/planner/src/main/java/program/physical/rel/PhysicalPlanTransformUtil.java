@@ -136,7 +136,8 @@ public class PhysicalPlanTransformUtil {
                         .build();
             }
             default:
-                if (rexNode.getKind().belongsTo(SqlKind.BINARY_COMPARISON)) {
+                if (rexNode.getKind().belongsTo(SqlKind.BINARY_COMPARISON)
+                        || rexNode.getKind().belongsTo(SqlKind.BINARY_ARITHMETIC)) {
                     return transformBinaryExpr((RexCall) rexNode);
                 }
                 String errMsg = String.format("RexNode:%s can not be convert", rexNode);
@@ -202,7 +203,8 @@ public class PhysicalPlanTransformUtil {
             SqlKind.LESS_THAN_OR_EQUAL, "LtEq",
             SqlKind.NOT_EQUALS, "NotEq",
             SqlKind.AND, "And",
-            SqlKind.OR, "Or"
+            SqlKind.OR, "Or",
+            SqlKind.TIMES, "Multiply"
     );
 
     public static proto.datafusion.PhysicalExprNode transformAggFunction(AggregateCall call, List<RelDataTypeField> fields) {

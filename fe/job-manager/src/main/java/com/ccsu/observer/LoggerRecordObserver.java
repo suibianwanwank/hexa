@@ -20,7 +20,7 @@ public class LoggerRecordObserver
 
 
     @Override
-    public void onCompleted() {
+    public void onCompleted(JobContext context) {
         LOGGER.info(String.format("SqlJob:[%s] execution successfully!", jobId));
     }
 

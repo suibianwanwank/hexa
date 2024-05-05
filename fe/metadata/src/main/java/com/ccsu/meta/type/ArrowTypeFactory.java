@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 public class ArrowTypeFactory extends SqlTypeFactoryImpl {
 
     public ArrowTypeFactory() {
-        super(RelDataTypeSystem.DEFAULT);
+        super(new ArrowDataTypeSystem());
     }
 
     public RelDataType createArrowType(ArrowTypeEnum arrowTypeEnum, SqlTypeName typeName) {
@@ -64,6 +64,10 @@ public class ArrowTypeFactory extends SqlTypeFactoryImpl {
         return canonize(newType);
     }
 
+    @Override
+    public RelDataTypeSystem getTypeSystem() {
+        return super.getTypeSystem();
+    }
 
     @Override
     public RelDataType createSqlType(SqlTypeName typeName) {

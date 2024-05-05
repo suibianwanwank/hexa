@@ -2,8 +2,10 @@ package program.util;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.util.Comparator;
 import java.util.List;
@@ -13,8 +15,7 @@ public class RexUtils {
 
     }
 
-    public static boolean containIdentity(List<? extends RexNode> exps, RelDataType rowType, RelDataType childRowType, Comparator<String> nameComparator)
-    {
+    public static boolean containIdentity(List<? extends RexNode> exps, RelDataType rowType, RelDataType childRowType, Comparator<String> nameComparator) {
         List<RelDataTypeField> fields = rowType.getFieldList();
         List<RelDataTypeField> childFields = childRowType.getFieldList();
         int fieldCount = childFields.size();
@@ -38,5 +39,17 @@ public class RexUtils {
             }
         }
         return true;
+    }
+
+    public static RexNode concatWithAnd(List<RexNode> rexNodeList, RexBuilder builder) {
+        RexNode andNode = null;
+        for (RexNode rexNode : rexNodeList) {
+            if (andNode == null) {
+                andNode = rexNode;
+                continue;
+            }
+            andNode = builder.makeCall(SqlStdOperatorTable.AND, andNode, rexNode);
+        }
+        return andNode;
     }
 }

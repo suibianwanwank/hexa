@@ -9,8 +9,6 @@ import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 
-import java.util.List;
-
 public class LogicalCoreRules {
 
 
@@ -75,15 +73,15 @@ public class LogicalCoreRules {
             CoreRules.FILTER_AGGREGATE_TRANSPOSE,
             CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS));
     public static final RuleSet LOGICAL_TO_PHYSICAL_RULES = RuleSets.ofList(ImmutableList.of(
+            AggregateExecutionPlanRule.DEFAULT_CONFIG.toRule(),
             EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_CORRELATE_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_CALC_RULE,
-            EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
-            EnumerableRules.ENUMERABLE_LIMIT_RULE,
+            LimitExecutionPlanRule.Config.DEFAULT.toRule(),
             EnumerableRules.ENUMERABLE_COLLECT_RULE,
             EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
             EnumerableRules.ENUMERABLE_MERGE_UNION_RULE,
@@ -95,7 +93,7 @@ public class LogicalCoreRules {
             EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
             EnumerableValuesRule.ENUMERABLE_VALUES_RULE,
             EnumerableRules.ENUMERABLE_WINDOW_RULE,
-            EnumerableSqlScanRule.ENUMERABLE_SQL_SCAN_RULE,
+            SourceScanExecutionRule.ENUMERABLE_SQL_SCAN_RULE,
             EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE,
             EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_MATCH_RULE

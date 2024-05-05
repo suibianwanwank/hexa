@@ -14,14 +14,14 @@ import java.util.Set;
 import static program.physical.rel.PhysicalPlanTransformUtil.transformJoinType;
 import static program.physical.rel.PhysicalPlanTransformUtil.transformRexNodeToJoinFilter;
 
-public class ExtendEnumerableBatchNestedLoopJoin
+public class BatchNestedLoopJoinExecutionPlan
         extends EnumerableBatchNestedLoopJoin
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
 
-    public static ExtendEnumerableBatchNestedLoopJoin create(
+    public static BatchNestedLoopJoinExecutionPlan create(
             EnumerableBatchNestedLoopJoin enumerableBatchNestedLoopJoin) {
-        return new ExtendEnumerableBatchNestedLoopJoin(enumerableBatchNestedLoopJoin.getCluster(),
+        return new BatchNestedLoopJoinExecutionPlan(enumerableBatchNestedLoopJoin.getCluster(),
                 enumerableBatchNestedLoopJoin.getTraitSet(),
                 enumerableBatchNestedLoopJoin.getLeft(),
                 enumerableBatchNestedLoopJoin.getRight(),
@@ -31,24 +31,25 @@ public class ExtendEnumerableBatchNestedLoopJoin
                 enumerableBatchNestedLoopJoin.getJoinType());
     }
 
-    protected ExtendEnumerableBatchNestedLoopJoin(RelOptCluster cluster,
-                                                  RelTraitSet traits,
-                                                  RelNode left,
-                                                  RelNode right,
-                                                  RexNode condition,
-                                                  Set<CorrelationId> variablesSet,
-                                                  ImmutableBitSet requiredColumns,
-                                                  JoinRelType joinType) {
+    protected BatchNestedLoopJoinExecutionPlan(RelOptCluster cluster,
+                                               RelTraitSet traits,
+                                               RelNode left,
+                                               RelNode right,
+                                               RexNode condition,
+                                               Set<CorrelationId> variablesSet,
+                                               ImmutableBitSet requiredColumns,
+                                               JoinRelType joinType) {
         super(cluster, traits, left, right, condition, variablesSet, requiredColumns, joinType);
     }
 
     @Override
     public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
-        proto.datafusion.PhysicalPlanNode leftNode = ((PhysicalPlan) getLeft()).transformToDataFusionNode();
-        proto.datafusion.PhysicalPlanNode rightNode = ((PhysicalPlan) getRight()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode leftNode = ((ExecutionPlan) getLeft()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode rightNode = ((ExecutionPlan) getRight()).transformToDataFusionNode();
         proto.datafusion.JoinType joinType = transformJoinType(getJoinType());
 
-        proto.datafusion.JoinFilter joinFilter = transformRexNodeToJoinFilter(condition, getRowType().getFieldList(), getLeft().getRowType().getFieldList().size());
+        proto.datafusion.JoinFilter joinFilter =
+                transformRexNodeToJoinFilter(condition, getRowType().getFieldList(), getLeft().getRowType().getFieldList().size());
 
         proto.datafusion.NestedLoopJoinExecNode.Builder builder = proto.datafusion.NestedLoopJoinExecNode.newBuilder()
                 .setLeft(leftNode)
@@ -62,7 +63,7 @@ public class ExtendEnumerableBatchNestedLoopJoin
 
     @Override
     public EnumerableBatchNestedLoopJoin copy(RelTraitSet traitSet, RexNode condition, RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
-        return new ExtendEnumerableBatchNestedLoopJoin(getCluster(), traitSet,
+        return new BatchNestedLoopJoinExecutionPlan(getCluster(), traitSet,
                 left, right, condition, variablesSet, null, joinType);
     }
 }

@@ -8,19 +8,18 @@ import org.apache.calcite.rel.RelNode;
 import proto.datafusion.PhysicalPlanNode;
 import proto.datafusion.UnionExecNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class ExtendEnumerableUnion
+public class UnionExecutionPlan
         extends EnumerableUnion
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
 
-    public static ExtendEnumerableUnion create(EnumerableUnion union){
-        return new ExtendEnumerableUnion(union.getCluster(), union.getTraitSet(), union.getInputs(), union.all);
+    public static UnionExecutionPlan create(EnumerableUnion union){
+        return new UnionExecutionPlan(union.getCluster(), union.getTraitSet(), union.getInputs(), union.all);
     }
 
-    public ExtendEnumerableUnion(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    public UnionExecutionPlan(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
         super(cluster, traitSet, inputs, all);
     }
 
@@ -28,7 +27,7 @@ public class ExtendEnumerableUnion
     public PhysicalPlanNode transformToDataFusionNode() {
         List<PhysicalPlanNode> inputs = Lists.newArrayList();
         for (RelNode input : getInputs()) {
-            inputs.add(((PhysicalPlan) input).transformToDataFusionNode());
+            inputs.add(((ExecutionPlan) input).transformToDataFusionNode());
         }
         UnionExecNode.Builder union = UnionExecNode.newBuilder()
                 .addAllInputs(inputs);
@@ -39,6 +38,6 @@ public class ExtendEnumerableUnion
 
     @Override
     public EnumerableUnion copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
-        return new ExtendEnumerableUnion(getCluster(), traitSet, inputs, all);
+        return new UnionExecutionPlan(getCluster(), traitSet, inputs, all);
     }
 }

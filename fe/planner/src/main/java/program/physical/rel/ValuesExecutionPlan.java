@@ -21,7 +21,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -33,19 +32,19 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
-public class ExtendEnumerableValues extends Values
-        implements EnumerableRel, PhysicalPlan {
-    private ExtendEnumerableValues(RelOptCluster cluster, RelDataType rowType,
-                                   ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
+public class ValuesExecutionPlan extends Values
+        implements EnumerableRel, ExecutionPlan {
+    private ValuesExecutionPlan(RelOptCluster cluster, RelDataType rowType,
+                                ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
         super(cluster, rowType, tuples, traitSet);
     }
 
     /**
      * Creates an EnumerableValues.
      */
-    public static ExtendEnumerableValues create(RelOptCluster cluster,
-                                                final RelDataType rowType,
-                                                final ImmutableList<ImmutableList<RexLiteral>> tuples) {
+    public static ValuesExecutionPlan create(RelOptCluster cluster,
+                                             final RelDataType rowType,
+                                             final ImmutableList<ImmutableList<RexLiteral>> tuples) {
         final RelMetadataQuery mq = cluster.getMetadataQuery();
         final RelTraitSet traitSet =
                 cluster.traitSetOf(EnumerableConvention.INSTANCE)
@@ -53,13 +52,13 @@ public class ExtendEnumerableValues extends Values
                                 () -> RelMdCollation.values(mq, rowType, tuples))
                         .replaceIf(RelDistributionTraitDef.INSTANCE,
                                 () -> RelMdDistribution.values(rowType, tuples));
-        return new ExtendEnumerableValues(cluster, rowType, tuples, traitSet);
+        return new ValuesExecutionPlan(cluster, rowType, tuples, traitSet);
     }
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         assert inputs.isEmpty();
-        return new ExtendEnumerableValues(getCluster(), getRowType(), tuples, traitSet);
+        return new ValuesExecutionPlan(getCluster(), getRowType(), tuples, traitSet);
     }
 
     @Override

@@ -7,32 +7,31 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.Pair;
 
 import java.util.List;
 
-public class ExtendEnumerableProject
+public class ProjectExecutionPlan
         extends EnumerableProject
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
-    public static ExtendEnumerableProject create(EnumerableProject enumerableProject) {
-        return new ExtendEnumerableProject(enumerableProject.getCluster(), enumerableProject.getTraitSet(),
+    public static ProjectExecutionPlan create(EnumerableProject enumerableProject) {
+        return new ProjectExecutionPlan(enumerableProject.getCluster(), enumerableProject.getTraitSet(),
                 enumerableProject.getInput(), enumerableProject.getProjects(), enumerableProject.getRowType());
     }
 
 
-    private ExtendEnumerableProject(RelOptCluster cluster,
-                                    RelTraitSet traitSet,
-                                    RelNode input,
-                                    List<? extends RexNode> projects,
-                                    RelDataType rowType) {
+    private ProjectExecutionPlan(RelOptCluster cluster,
+                                 RelTraitSet traitSet,
+                                 RelNode input,
+                                 List<? extends RexNode> projects,
+                                 RelDataType rowType) {
         super(cluster, traitSet, input, projects, rowType);
     }
 
     @Override
     public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
         proto.datafusion.ProjectionExecNode.Builder builder = proto.datafusion.ProjectionExecNode.newBuilder();
-        proto.datafusion.PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode input = ((ExecutionPlan) getInput()).transformToDataFusionNode();
         builder.setInput(input);
 
         for (RexNode project : getProjects()) {
@@ -49,9 +48,9 @@ public class ExtendEnumerableProject
     }
 
     @Override
-    public ExtendEnumerableProject copy(RelTraitSet traitSet, RelNode input,
-                                        List<RexNode> projects, RelDataType rowType) {
-        return new ExtendEnumerableProject(getCluster(), traitSet, input,
+    public ProjectExecutionPlan copy(RelTraitSet traitSet, RelNode input,
+                                     List<RexNode> projects, RelDataType rowType) {
+        return new ProjectExecutionPlan(getCluster(), traitSet, input,
                 projects, rowType);
     }
 }

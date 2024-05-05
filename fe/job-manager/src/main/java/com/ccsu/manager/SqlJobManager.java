@@ -112,9 +112,9 @@ public class SqlJobManager
 
 
         List<SqlJobObserver> observerList = Lists.newArrayList();
-        observerList.addAll(observers);
-        observerList.add(JobProfileObserver.newJobProfileObserver(jobId, jobProfile, storeManager));
+        observerList.add(JobProfileObserver.newJobProfileObserver(jobProfile, storeManager));
         observerList.add(LoggerRecordObserver.newLoggerObserver(jobId));
+        observerList.addAll(observers);
 
         return new QueryContext(sql, clusterId, jobId, sqlParser,
                 new VolcanoRelOptCostFactory(), catalogReader, optionManager,

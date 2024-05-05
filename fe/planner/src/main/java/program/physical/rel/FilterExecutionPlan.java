@@ -8,13 +8,13 @@ import org.apache.calcite.rex.RexNode;
 
 import static program.physical.rel.PhysicalPlanTransformUtil.transformRexNodeToExprNode;
 
-public class ExtendEnumerableFilter
+public class FilterExecutionPlan
         extends EnumerableFilter
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
 
-    public static ExtendEnumerableFilter create(EnumerableFilter enumerableFilter) {
-        return new ExtendEnumerableFilter(enumerableFilter.getCluster(),
+    public static FilterExecutionPlan create(EnumerableFilter enumerableFilter) {
+        return new FilterExecutionPlan(enumerableFilter.getCluster(),
                 enumerableFilter.getTraitSet(), enumerableFilter.getInput(), enumerableFilter.getCondition());
     }
 
@@ -28,14 +28,14 @@ public class ExtendEnumerableFilter
      * @param child
      * @param condition
      */
-    private ExtendEnumerableFilter(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, RexNode condition) {
+    private FilterExecutionPlan(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, RexNode condition) {
         super(cluster, traitSet, child, condition);
     }
 
     @Override
     public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
         proto.datafusion.PhysicalExprNode exprNode = transformRexNodeToExprNode(getCondition());
-        proto.datafusion.PhysicalPlanNode input = ((PhysicalPlan) getInput()).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode input = ((ExecutionPlan) getInput()).transformToDataFusionNode();
         proto.datafusion.FilterExecNode.Builder builder = proto.datafusion.FilterExecNode.newBuilder()
                 .setExpr(exprNode)
                 .setInput(input);
@@ -45,7 +45,7 @@ public class ExtendEnumerableFilter
     }
 
     @Override
-    public ExtendEnumerableFilter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
-        return new ExtendEnumerableFilter(getCluster(), traitSet, input, condition);
+    public FilterExecutionPlan copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+        return new FilterExecutionPlan(getCluster(), traitSet, input, condition);
     }
 }

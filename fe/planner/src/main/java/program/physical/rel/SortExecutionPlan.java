@@ -13,12 +13,12 @@ import proto.datafusion.PhysicalSortExprNode;
 
 import static program.physical.rel.PhysicalPlanTransformUtil.transformRexNodeToExprNode;
 
-public class ExtendEnumerableSort
+public class SortExecutionPlan
         extends EnumerableSort
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
-    public static ExtendEnumerableSort create(EnumerableSort enumerableSort) {
-        return new ExtendEnumerableSort(enumerableSort.getCluster(),
+    public static SortExecutionPlan create(EnumerableSort enumerableSort) {
+        return new SortExecutionPlan(enumerableSort.getCluster(),
                 enumerableSort.getTraitSet(),
                 enumerableSort.getInput(),
                 enumerableSort.getCollation(),
@@ -38,8 +38,8 @@ public class ExtendEnumerableSort
      * @param offset
      * @param fetch
      */
-    public ExtendEnumerableSort(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-                                RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
+    public SortExecutionPlan(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+                             RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
         super(cluster, traitSet, input, collation, offset, fetch);
     }
 
@@ -50,7 +50,7 @@ public class ExtendEnumerableSort
             fetchValue = RexLiteral.intValue(fetch);
         }
         proto.datafusion.SortExecNode.Builder sortExecNode = proto.datafusion.SortExecNode.newBuilder()
-                .setInput(((PhysicalPlan) getInput()).transformToDataFusionNode())
+                .setInput(((ExecutionPlan) getInput()).transformToDataFusionNode())
                 .setFetch(fetchValue);
         for (RexNode sortExp : getSortExps()) {
             PhysicalSortExprNode.Builder expr = PhysicalSortExprNode.newBuilder()
@@ -63,9 +63,9 @@ public class ExtendEnumerableSort
     }
 
     @Override
-    public ExtendEnumerableSort copy(RelTraitSet traitSet, RelNode newInput,
-                                     RelCollation newCollation, @Nullable RexNode offset, @Nullable RexNode fetch) {
-        return new ExtendEnumerableSort(getCluster(), traitSet, newInput, newCollation,
+    public SortExecutionPlan copy(RelTraitSet traitSet, RelNode newInput,
+                                  RelCollation newCollation, @Nullable RexNode offset, @Nullable RexNode fetch) {
+        return new SortExecutionPlan(getCluster(), traitSet, newInput, newCollation,
                 offset, fetch);
     }
 }

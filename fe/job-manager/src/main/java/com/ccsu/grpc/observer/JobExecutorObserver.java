@@ -14,7 +14,7 @@ public class JobExecutorObserver implements SqlJobObserver {
 
 
     @Override
-    public void onCompleted() {
+    public void onCompleted(JobContext context) {
         settableFuture.set(Void.DEFAULT);
     }
 

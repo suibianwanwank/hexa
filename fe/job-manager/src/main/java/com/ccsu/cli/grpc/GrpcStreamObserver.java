@@ -17,7 +17,11 @@ public class GrpcStreamObserver implements SqlJobObserver {
 
 
     @Override
-    public void onCompleted() {
+    public void onCompleted(JobContext context) {
+        streamObserver.onNext(CliDisplayResponse.newBuilder()
+                .setContent(String.format("Query Completed, elapsed time: %sms.  [JobId]: '%s'",
+                        context.getJobProfile().getElapsedTime(), context.getJobId()))
+                .build());
         streamObserver.onCompleted();
     }
 
@@ -31,7 +35,9 @@ public class GrpcStreamObserver implements SqlJobObserver {
 
     @Override
     public void onCancel(String cancelCause) {
-        streamObserver.onError(new CommonException(CommonErrorCode.GRPC_ERROR, "Task has been cancel"));
+        streamObserver.onError(
+                new CommonException(CommonErrorCode.GRPC_ERROR, "Task has been cancel")
+        );
     }
 
     @Override

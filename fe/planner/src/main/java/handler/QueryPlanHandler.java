@@ -7,7 +7,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlNode;
 import program.QueryPlannerProgram;
-import program.physical.rel.PhysicalPlan;
+import program.physical.rel.ExecutionPlan;
 
 public class QueryPlanHandler
         implements SqlHandler<QueryPlanResult, SqlNode, QueryContext> {
@@ -32,7 +32,7 @@ public class QueryPlanHandler
 
         LOGGER.info("Optimised physical execution plan:\n %s", RelOptUtil.toString(lastPlan));
 
-        proto.datafusion.PhysicalPlanNode dataFusionPlan = ((PhysicalPlan) lastPlan).transformToDataFusionNode();
+        proto.datafusion.PhysicalPlanNode dataFusionPlan = ((ExecutionPlan) lastPlan).transformToDataFusionNode();
 
         return QueryPlanResult.success(dataFusionPlan);
     }

@@ -18,16 +18,16 @@ import java.util.List;
 import static com.ccsu.pojo.DatasourceType.transformToProtoSourceType;
 import static program.physical.rel.PhysicalPlanTransformUtil.buildRelNodeSchema;
 
-public class EnumerableSqlScan
+public class SourceScanExecutionPlan
         extends EnumerableTableScan
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
     private final DatasourceConfig config;
     private final String sql;
 
 
-    public static EnumerableSqlScan create(DatasourceConfig config, String sql,
-                                           RelOptCluster cluster, RelOptTable table, Class elementType) {
+    public static SourceScanExecutionPlan create(DatasourceConfig config, String sql,
+                                                 RelOptCluster cluster, RelOptTable table, Class elementType) {
         final RelTraitSet traitSet =
                 cluster.traitSetOf(EnumerableConvention.INSTANCE)
                         .replaceIfs(RelCollationTraitDef.INSTANCE, () -> {
@@ -36,7 +36,7 @@ public class EnumerableSqlScan
                             }
                             return ImmutableList.of();
                         });
-        return new EnumerableSqlScan(config, sql, cluster, traitSet, table, elementType);
+        return new SourceScanExecutionPlan(config, sql, cluster, traitSet, table, elementType);
     }
 
     /**
@@ -49,8 +49,8 @@ public class EnumerableSqlScan
      * @param table
      * @param elementType
      */
-    public EnumerableSqlScan(DatasourceConfig config, String sql, RelOptCluster cluster, RelTraitSet traitSet,
-                             RelOptTable table, Class elementType) {
+    public SourceScanExecutionPlan(DatasourceConfig config, String sql, RelOptCluster cluster, RelTraitSet traitSet,
+                                   RelOptTable table, Class elementType) {
         super(cluster, traitSet, table, elementType);
         this.config = config;
         this.sql = sql;
@@ -66,8 +66,8 @@ public class EnumerableSqlScan
      * @param table
      * @param elementType
      */
-    public EnumerableSqlScan(DatasourceConfig config, String sql, RelOptCluster cluster, RelTraitSet traitSet,
-                             RelOptTable table, RelDataType rowType, Class elementType) {
+    public SourceScanExecutionPlan(DatasourceConfig config, String sql, RelOptCluster cluster, RelTraitSet traitSet,
+                                   RelOptTable table, RelDataType rowType, Class elementType) {
         super(cluster, traitSet, table, elementType);
         this.config = config;
         this.rowType = rowType;
@@ -103,15 +103,15 @@ public class EnumerableSqlScan
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return new EnumerableSqlScan(null, sql, getCluster(), traitSet, table, Object.class);
+        return new SourceScanExecutionPlan(null, sql, getCluster(), traitSet, table, Object.class);
     }
 
     public DatasourceType getSourceType() {
         return config.getSourceType();
     }
 
-    public EnumerableSqlScan copy(String sql, RelDataType rowType) {
-        return new EnumerableSqlScan(config, sql, getCluster(), getTraitSet(), table, rowType, Object.class);
+    public SourceScanExecutionPlan copy(String sql, RelDataType rowType) {
+        return new SourceScanExecutionPlan(config, sql, getCluster(), getTraitSet(), table, rowType, Object.class);
     }
 
     @Override public RelWriter explainTerms(RelWriter pw) {

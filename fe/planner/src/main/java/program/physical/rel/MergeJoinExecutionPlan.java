@@ -13,12 +13,12 @@ import java.util.Set;
 import static program.physical.rel.PhysicalPlanTransformUtil.transformJoinOn;
 import static program.physical.rel.PhysicalPlanTransformUtil.transformJoinType;
 
-public class ExtendEnumerableMergeJoin
+public class MergeJoinExecutionPlan
         extends EnumerableMergeJoin
-        implements PhysicalPlan {
+        implements ExecutionPlan {
 
-    public static ExtendEnumerableMergeJoin create(EnumerableMergeJoin enumerableMergeJoin) {
-        return new ExtendEnumerableMergeJoin(enumerableMergeJoin.getCluster(),
+    public static MergeJoinExecutionPlan create(EnumerableMergeJoin enumerableMergeJoin) {
+        return new MergeJoinExecutionPlan(enumerableMergeJoin.getCluster(),
                 enumerableMergeJoin.getTraitSet(),
                 enumerableMergeJoin.getLeft(),
                 enumerableMergeJoin.getRight(),
@@ -27,9 +27,9 @@ public class ExtendEnumerableMergeJoin
                 enumerableMergeJoin.getJoinType());
     }
 
-    protected ExtendEnumerableMergeJoin(RelOptCluster cluster, RelTraitSet traits,
-                                        RelNode left, RelNode right, RexNode condition,
-                                        Set<CorrelationId> variablesSet, JoinRelType joinType) {
+    protected MergeJoinExecutionPlan(RelOptCluster cluster, RelTraitSet traits,
+                                     RelNode left, RelNode right, RexNode condition,
+                                     Set<CorrelationId> variablesSet, JoinRelType joinType) {
         super(cluster, traits, left, right, condition, variablesSet, joinType);
     }
 
@@ -37,8 +37,8 @@ public class ExtendEnumerableMergeJoin
     @Override
     public proto.datafusion.PhysicalPlanNode transformToDataFusionNode() {
         proto.datafusion.SortMergeJoinExecNode mergeJoinExecNode = proto.datafusion.SortMergeJoinExecNode.newBuilder()
-                .setLeft(((PhysicalPlan) getLeft()).transformToDataFusionNode())
-                .setRight(((PhysicalPlan) getRight()).transformToDataFusionNode())
+                .setLeft(((ExecutionPlan) getLeft()).transformToDataFusionNode())
+                .setRight(((ExecutionPlan) getRight()).transformToDataFusionNode())
                 .setNullEqualsNull(false)
                 .setJoinType(transformJoinType(getJoinType()))
                 .addOn(transformJoinOn(getCondition(), getLeft(), getRight()))
@@ -52,7 +52,7 @@ public class ExtendEnumerableMergeJoin
     @Override
     public EnumerableMergeJoin copy(RelTraitSet traitSet, RexNode condition, RelNode left,
                                     RelNode right, JoinRelType joinType, boolean semiJoinDone) {
-        return new ExtendEnumerableMergeJoin(getCluster(), traitSet, left, right,
+        return new MergeJoinExecutionPlan(getCluster(), traitSet, left, right,
                 condition, variablesSet, joinType);
     }
 }

@@ -14,15 +14,15 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Table;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import program.physical.rel.EnumerableSqlScan;
+import program.physical.rel.SourceScanExecutionPlan;
 
 /**
- * Planner rule that converts a {@link LogicalTableScan} to an {@link EnumerableSqlScanRule}.
+ * Planner rule that converts a {@link LogicalTableScan} to an {@link SourceScanExecutionRule}.
  * You may provide a custom config to convert other nodes that extend {@link TableScan}.
  *
  * @see org.apache.calcite.adapter.enumerable.EnumerableRules#ENUMERABLE_TABLE_SCAN_RULE
  */
-public class EnumerableSqlScanRule extends ConverterRule {
+public class SourceScanExecutionRule extends ConverterRule {
 
     /**
      * Default configuration.
@@ -32,12 +32,12 @@ public class EnumerableSqlScanRule extends ConverterRule {
                     r -> EnumerableTableScan.canHandle(r.getTable()),
                     Convention.NONE, EnumerableConvention.INSTANCE,
                     "EnumerableSqlScanRule")
-            .withRuleFactory(EnumerableSqlScanRule::new);
+            .withRuleFactory(SourceScanExecutionRule::new);
 
-    public static final EnumerableSqlScanRule ENUMERABLE_SQL_SCAN_RULE =
-            EnumerableSqlScanRule.DEFAULT_CONFIG.toRule(EnumerableSqlScanRule.class);
+    public static final SourceScanExecutionRule ENUMERABLE_SQL_SCAN_RULE =
+            SourceScanExecutionRule.DEFAULT_CONFIG.toRule(SourceScanExecutionRule.class);
 
-    protected EnumerableSqlScanRule(Config config) {
+    protected SourceScanExecutionRule(Config config) {
         super(config);
     }
 
@@ -52,7 +52,7 @@ public class EnumerableSqlScanRule extends ConverterRule {
         if (table instanceof QueryableTable || relOptTable.getExpression(Object.class) != null) {
             return EnumerableTableScan.create(scan.getCluster(), relOptTable);
         }
-        //TODO optimize
+
         if (relOptTable instanceof Prepare.PreparingTable) {
             CommonTranslateTable physicalTable = (relOptTable).unwrap(CommonTranslateTable.class);
             if (physicalTable == null) {
@@ -61,7 +61,8 @@ public class EnumerableSqlScanRule extends ConverterRule {
             TableInfo metadataTable = physicalTable.getTableInfo();
             String schemaName = metadataTable.getSchemaName();
             String tableName = metadataTable.getTableName();
-            return EnumerableSqlScan.create(physicalTable.getSourceConfig(), String.format("select * from %s.%s", schemaName, tableName),
+            return SourceScanExecutionPlan.create(physicalTable.getSourceConfig(),
+                    String.format("select * from %s.%s", schemaName, tableName),
                     rel.getCluster(), relOptTable, Object.class);
 
         }
