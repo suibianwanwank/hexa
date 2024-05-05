@@ -4,7 +4,7 @@ use snafu::Snafu;
 use tokio::sync::mpsc::error::SendError;
 use crate::datasource::common::meta::DatabaseItem;
 use crate::datasource::dispatch::SourceType;
-use crate::datasource::mysql::error::MysqlError;
+// use crate::datasource::mysql::error::MysqlError;
 use crate::datasource::postgres::error::PostgresError;
 
 pub(crate) mod macros;
@@ -12,14 +12,15 @@ pub(crate) mod macros;
 pub mod accessor;
 pub mod utils;
 pub mod meta;
+pub mod pool;
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
 pub enum DatasourceCommonError {
-    #[snafu(display("Mysql Access error"))]
-    MysqlAccessSource {
-        source: MysqlError,
-    },
+    // #[snafu(display("Mysql Access error"))]
+    // MysqlAccessSource {
+    //     source: MysqlError,
+    // },
     #[snafu(display("Postgres Access error"))]
     PostgresAccessSource {
         source: PostgresError,

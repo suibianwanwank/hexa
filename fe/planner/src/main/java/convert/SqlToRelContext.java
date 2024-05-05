@@ -43,10 +43,6 @@ public class SqlToRelContext implements RelOptTable.ToRelContext {
         return Collections.emptyList();
     }
 
-    public SqlConverter getSqlConverter() {
-        return sqlConverter;
-    }
-
     @Override
     public RelRoot expandView(RelDataType relDataType, String s, List<String> list, @Nullable List<String> list1) {
         return null;

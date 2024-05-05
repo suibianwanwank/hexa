@@ -43,6 +43,8 @@ public enum CommonErrorCode {
 
     JOB_PROFILE_NOT_EXIST(0x0000_00016, CommonErrorType.SYSTEM_ERROR),
 
+    NOT_SUPPORT_SOURCE_TYPE(0x0000_00017, CommonErrorType.SYSTEM_ERROR),
+
     UNKNOWN_ERROR(0x9999_9999, CommonErrorType.UNKNOWN_ERROR);
 
     private final int code;

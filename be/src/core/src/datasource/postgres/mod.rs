@@ -12,21 +12,32 @@ use crate::datasource::common::DatasourceCommonError::NotSupportArrowType;
 use crate::datasource::common::PostgresAccessSourceSnafu;
 use crate::datasource::common::SqlxFetchAllSnafu;
 use crate::datasource::postgres::error::PostgresError::UnSupportDataType;
-use crate::datasource::postgres::error::SqlxConnectSnafu;
 use crate::{execute_sqlx_query_to_array, impl_row_to_array};
 use async_trait::async_trait;
 use datafusion::arrow::array::ArrayRef;
 use datafusion::arrow::datatypes::DataType::*;
 use datafusion::arrow::datatypes::{DataType, SchemaRef};
 use error::Result;
+use hexa_common::during_time_info;
+use hexa_common::timer::TimerLoggerGuard;
+use lazy_static::lazy_static;
+use moka::future::Cache;
 use snafu::ResultExt;
-use sqlx::postgres::{PgConnectOptions, PgRow};
-use sqlx::{ConnectOptions, Database, Executor, PgConnection, Postgres, Row};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgRow};
+use sqlx::{Database, Executor, PgPool, Pool, Postgres, Row};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Sender;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::codegen::tokio_stream::StreamExt;
 use tracing::log::info;
+
+lazy_static! {
+    static ref PG_POOL: Cache<Arc<str>, Arc<Pool<Postgres>>> = Cache::builder()
+        .max_capacity(30)
+        .time_to_live(std::time::Duration::from_secs(60 * 24))
+        .build();
+}
 
 pub struct PostgresAccessor {
     name: String,
@@ -56,7 +67,9 @@ impl PostgresAccessor {
         }
     }
 
-    async fn inner_get_conn(&self) -> Result<PgConnection> {
+    async fn inner_get_conn(&self) -> Result<Arc<Pool<Postgres>>> {
+        during_time_info!("Connect to database postgresql!");
+
         let mut options = PgConnectOptions::new()
             .host(self.host.as_str())
             .username(self.username.as_str());
@@ -73,9 +86,21 @@ impl PostgresAccessor {
             options = options.database(database.as_str());
         }
 
-        let conn = options.connect().await.context(SqlxConnectSnafu {})?;
+        let pool = PG_POOL
+            .get_with(self.name.as_str().into(), async {
+                Arc::new(
+                    PgPoolOptions::new()
+                        .acquire_timeout(std::time::Duration::from_secs(60 * 3))
+                        .min_connections(0)
+                        .max_connections(5)
+                        .connect_with(options)
+                        .await
+                        .unwrap(),
+                )
+            })
+            .await;
 
-        Ok(conn)
+        Ok(pool)
     }
 }
 
@@ -83,7 +108,7 @@ impl PostgresAccessor {
 impl SqlxAccessor for PostgresAccessor {
     type Database = Postgres;
 
-    async fn get_conn(&self) -> super::common::Result<PgConnection> {
+    async fn get_connection_pool(&self) -> super::common::Result<Arc<Pool<Self::Database>>> {
         self.inner_get_conn()
             .await
             .context(PostgresAccessSourceSnafu {})
@@ -94,6 +119,7 @@ impl SqlxAccessor for PostgresAccessor {
         rows: &[<Self::Database as Database>::Row],
         schema: SchemaRef,
     ) -> crate::datasource::common::Result<Vec<ArrayRef>> {
+        during_time_info!("Convert row to array");
         pg_row_to_array(rows, schema)
     }
 }
@@ -105,25 +131,23 @@ impl Accessor for PostgresAccessor {
         schema: &str,
         table: &str,
     ) -> crate::datasource::common::Result<TableDetail> {
-        // TODO query system table
         let query = format!(
             "select * from information_schema.columns where table_schema = '{}' and table_name = '{}'",
             schema,
             table
         );
 
-        // let query = format!("SELECT * FROM {}.{} limit 1", schema, table);
         let cq = format!("SELECT COUNT(*) FROM {}.{}", schema, table);
 
-        let mut conn = self.get_conn().await?;
+        let pool = self.get_connection_pool().await?;
 
-        let rows = conn
+        let rows = pool
             .fetch_all(sqlx::query(query.as_str()))
             .await
             .context(crate::datasource::common::SqlxFetchOneSnafu {})?;
         info!("Execute fetch all sql:{}", query);
 
-        let rc: i64 = conn
+        let rc: i64 = pool
             .fetch_one(sqlx::query(cq.as_str()))
             .await
             .context(crate::datasource::common::SqlxFetchOneSnafu {})?
@@ -161,12 +185,15 @@ impl Accessor for PostgresAccessor {
     ) -> crate::datasource::common::Result<ReceiverStream<DatabaseItem>> {
         let (tx, rx) = mpsc::channel(10000);
 
-        //TODO may we need a connection manager to optimize it
-        let conn1 = self.get_conn().await?;
-        let conn2 = self.get_conn().await?;
+        let pool = self.get_connection_pool().await?;
+
         let catalog_name = self.name.clone();
         info!("connect to pg data source Successful!");
-        tokio::spawn(async move { get_database_item_and_send(tx, conn1, conn2, catalog_name).await.unwrap() });
+        tokio::spawn(async move {
+            get_database_item_and_send(tx, pool, catalog_name)
+                .await
+                .unwrap()
+        });
 
         Ok(ReceiverStream::new(rx))
     }
@@ -182,14 +209,14 @@ impl Accessor for PostgresAccessor {
 
 async fn get_database_item_and_send(
     tx: Sender<DatabaseItem>,
-    mut conn1: PgConnection,
-    mut conn2: PgConnection,
+    pool: Arc<PgPool>,
     catalog_name: String,
 ) -> crate::datasource::common::Result<()> {
     info!("Start to collect pg");
 
-    let mut database_rows =
-        sqlx::query("SELECT * FROM information_schema.schemata").fetch(&mut conn1);
+    let mut database_rows = pool
+        .clone()
+        .fetch("SELECT * FROM information_schema.schemata");
 
     while let Some(row) = database_rows
         .try_next()
@@ -213,14 +240,12 @@ async fn get_database_item_and_send(
             .await
             .context(crate::datasource::common::SendDatabaseItemStreamSnafu {});
 
-        //do next
-
         let sql = format!(
             "select table_name from information_schema.tables where table_schema= '{}'",
             &schema_name
         );
 
-        let mut table_rows = sqlx::query(&sql).fetch(&mut conn2);
+        let mut table_rows = pool.fetch(sql.as_str());
 
         while let Some(row) = table_rows.try_next().await.context(SqlxFetchAllSnafu {})? {
             // send table info

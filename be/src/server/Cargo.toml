@@ -9,6 +9,7 @@ rust-version = "1.72"
 [dependencies]
 
 hexa-proto = { workspace = true }
+hexa-common = { workspace = true }
 hexa = { workspace = true }
 
 tokio = { workspace = true }
@@ -17,13 +18,13 @@ async-trait = { workspace = true }
 tonic = { workspace = true }
 datafusion = { workspace = true }
 arrow-flight = { workspace = true }
-mimalloc-rust = { workspace = true }
 snafu = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 
 comfy-table = "7.1.0"
+mimalloc = { version = "*" }
 
 [[bin]]
 name = "hexa-be"

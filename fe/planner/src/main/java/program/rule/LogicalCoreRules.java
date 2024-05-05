@@ -12,6 +12,14 @@ import org.apache.calcite.tools.RuleSets;
 import java.util.List;
 
 public class LogicalCoreRules {
+
+
+    public static final RelOptRule PUSH_DOWN_FILTER_RULE = PushDownFilterRule.Config.DEFAULT.toRule();
+
+    public static final RelOptRule PUSH_DOWN_PROJECT_RULE = PushDownProjectRule.Config.DEFAULT.toRule();
+
+//    public static final RemoveJoinSingleValue REMOVE_JOIN_SINGLE_VALUE_RULE = RemoveJoinSingleValue.Config.DEFAULT.toRule();
+
     private LogicalCoreRules() {
     }
 
@@ -46,8 +54,8 @@ public class LogicalCoreRules {
     public static final RuleSet LOGICAL_BASED_RULES = RuleSets.ofList(ImmutableList.of(
             CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_CONDITION_PUSH,
+//            REMOVE_JOIN_SINGLE_VALUE_RULE,
             AbstractConverter.ExpandConversionRule.INSTANCE,
-            CoreRules.PROJECT_TABLE_SCAN,
             PruneEmptyRules.UNION_INSTANCE,
             PruneEmptyRules.INTERSECT_INSTANCE,
             PruneEmptyRules.MINUS_INSTANCE,

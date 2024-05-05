@@ -1,4 +1,4 @@
-package program.rule;
+package program.rule.program;
 
 import context.QueryContext;
 import org.apache.calcite.rel.RelNode;

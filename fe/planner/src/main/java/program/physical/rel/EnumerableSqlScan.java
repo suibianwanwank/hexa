@@ -1,6 +1,7 @@
 package program.physical.rel;
 
 import com.ccsu.pojo.DatasourceConfig;
+import com.ccsu.pojo.DatasourceType;
 import com.google.common.collect.ImmutableList;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
@@ -9,6 +10,8 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
 
@@ -19,7 +22,7 @@ public class EnumerableSqlScan
         extends EnumerableTableScan
         implements PhysicalPlan {
 
-    private DatasourceConfig config;
+    private final DatasourceConfig config;
     private final String sql;
 
 
@@ -53,8 +56,22 @@ public class EnumerableSqlScan
         this.sql = sql;
     }
 
-    public String getSql() {
-        return sql;
+    /**
+     * Creates an EnumerableTableScan.
+     *
+     * <p>Use {@link #create} unless you know what you are doing.
+     *
+     * @param cluster
+     * @param traitSet
+     * @param table
+     * @param elementType
+     */
+    public EnumerableSqlScan(DatasourceConfig config, String sql, RelOptCluster cluster, RelTraitSet traitSet,
+                             RelOptTable table, RelDataType rowType, Class elementType) {
+        super(cluster, traitSet, table, elementType);
+        this.config = config;
+        this.rowType = rowType;
+        this.sql = sql;
     }
 
     @Override
@@ -73,7 +90,7 @@ public class EnumerableSqlScan
         }
 
 
-        proto.datafusion.Schema.Builder schema = buildRelNodeSchema(getTable().getRowType().getFieldList());
+        proto.datafusion.Schema.Builder schema = buildRelNodeSchema(getRowType().getFieldList());
         proto.datafusion.SqlScanExecNode.Builder builder = proto.datafusion.SqlScanExecNode.newBuilder()
                 .setConfig(scanConfig)
                 .setSchema(schema)
@@ -86,6 +103,19 @@ public class EnumerableSqlScan
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return new EnumerableSqlScan(null, getSql(), getCluster(), traitSet, table, Object.class);
+        return new EnumerableSqlScan(null, sql, getCluster(), traitSet, table, Object.class);
+    }
+
+    public DatasourceType getSourceType() {
+        return config.getSourceType();
+    }
+
+    public EnumerableSqlScan copy(String sql, RelDataType rowType) {
+        return new EnumerableSqlScan(config, sql, getCluster(), getTraitSet(), table, rowType, Object.class);
+    }
+
+    @Override public RelWriter explainTerms(RelWriter pw) {
+        return super.explainTerms(pw)
+                .item("pushDownSql", sql);
     }
 }

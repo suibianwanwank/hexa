@@ -3,7 +3,7 @@ use crate::datasource::common::meta::{DatabaseItem, TableDetail};
 use crate::datasource::common::DatasourceCommonError::MissingAccessType;
 use crate::datasource::common::RecordBatchCreateSnafu;
 use crate::datasource::common::Result;
-use crate::datasource::mysql::MysqlAccessor;
+// use crate::datasource::mysql::MysqlAccessor;
 use crate::datasource::postgres::PostgresAccessor;
 use datafusion::arrow::array::RecordBatch;
 use datafusion::arrow::datatypes::SchemaRef;
@@ -12,7 +12,8 @@ use sqlx::FromRow;
 use std::collections::HashMap;
 use std::pin::Pin;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
-use tracing::info;
+use hexa_common::during_time_info;
+use hexa_common::timer::TimerLoggerGuard;
 
 pub struct QueryDispatcher {}
 
@@ -74,12 +75,11 @@ impl QueryDispatcher {
         schema: SchemaRef,
         sql: &str,
     ) -> Result<RecordBatch> {
-        info!("Query start and schema is {}", schema);
+        during_time_info!(format!("Finished to execute query,scan sql is: [{}]!\n", sql));
         let access = self.get_accessor(config).await?;
 
         let array = access.query_and_get_array(schema.clone(), sql).await?;
 
-        info!("Finished to get array ref, ready to return record batch");
         RecordBatch::try_new(schema, array).context(RecordBatchCreateSnafu {})
     }
 
@@ -87,13 +87,11 @@ impl QueryDispatcher {
         &self,
         config: DataSourceConfig,
     ) -> Result<ReceiverStream<DatabaseItem>> {
+        during_time_info!("Access list table and schemas finished");
+
         let accessor = self.get_accessor(config).await?;
 
-        let stream = accessor.get_all_schema_and_table().await;
-
-        info!("Access list table and schemas finished");
-
-        stream
+        accessor.get_all_schema_and_table().await
     }
 
     pub async fn get_table_detail(
@@ -109,13 +107,13 @@ impl QueryDispatcher {
 
     pub async fn get_accessor(&self, config: DataSourceConfig) -> Result<Pin<Box<dyn Accessor>>> {
         match config.source_type {
-            SourceType::Mysql => Ok(Box::pin(MysqlAccessor::new(
-                config.name.clone(),
-                config.host.clone(),
-                Some(config.port as u16),
-                config.username.clone(),
-                Some(config.password.clone()),
-            ))),
+            // SourceType::Mysql => Ok(Box::pin(MysqlAccessor::new(
+            //     config.name.clone(),
+            //     config.host.clone(),
+            //     Some(config.port as u16),
+            //     config.username.clone(),
+            //     Some(config.password.clone()),
+            // ))),
             SourceType::Postgresql => Ok(Box::pin(PostgresAccessor::new(
                 config.name.clone(),
                 config.host.clone(),

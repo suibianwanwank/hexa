@@ -7,6 +7,7 @@ import program.logical.LogicalVolcanoProgram;
 import program.program.RuleOptimizeProgram;
 import program.program.SequenceRuleBasedProgram;
 import program.rule.*;
+import program.rule.program.*;
 
 public class QueryPlannerProgram {
     private static final String EXPRESSION_REDUCE = "EXPRESSION_REDUCE";
@@ -24,10 +25,6 @@ public class QueryPlannerProgram {
                             .build())
                     .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
                             .setHepMatchOrder(HepMatchOrder.ARBITRARY)
-                            .setName(EXPRESSION_REDUCE)
-                            .build())
-                    .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
-                            .setHepMatchOrder(HepMatchOrder.ARBITRARY)
                             .add(LogicalCoreRules.WINDOW_REWRITE)
                             .setName(WINDOW_REWRITE)
                             .build())
@@ -41,11 +38,24 @@ public class QueryPlannerProgram {
     public static final RuleOptimizeProgram LOGICAL_TO_PHYSICAL_PLAN_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
                     .setPhrase(Phrase.LOGICAL_TO_PHYSICAL_PLAN)
+                    .addLast(new TrimFieldsProgram())
                     .addLast(new LogicalVolcanoProgram.LogicalVolcanoProgramBuilder()
                             .add(LogicalCoreRules.LOGICAL_BASED_RULES)
                             .add(LogicalCoreRules.LOGICAL_TO_PHYSICAL_RULES)
                             .build())
                     .addLast(RenameProjectRule.INSTANCE)
+                    .build();
+
+
+    public static final RuleOptimizeProgram JDBC_PUSH_DOWN_PROGRAM =
+            new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
+                    .addLast(AddPushDownHintRelProgram.DEFAULT)
+                    .addLast(new LogicalHepProgram.LogicalHepProgramBuilder()
+                            .setHepMatchOrder(HepMatchOrder.ARBITRARY)
+                            .add(LogicalCoreRules.PUSH_DOWN_PROJECT_RULE)
+                            .add(LogicalCoreRules.PUSH_DOWN_FILTER_RULE)
+                            .build())
+                    .addLast(RemovePushDownHintRelProgram.DEFAULT)
                     .build();
 
     /**
@@ -56,6 +66,8 @@ public class QueryPlannerProgram {
     public static final RuleOptimizeProgram PHYSICAL_OPTIMIZE_PROGRAM =
             new SequenceRuleBasedProgram.SequenceRuleBasedProgramBuilder()
                     .setPhrase(Phrase.PHYSICAL_PLAN_OPTIMIZE)
+                    .addLast(JDBC_PUSH_DOWN_PROGRAM)
+                    .addLast(RemoveSargProgram.DEFAULT)
                     .addLast(ExtendPhysicalRelTransformRule.INSTANCE)
                     .build();
 }

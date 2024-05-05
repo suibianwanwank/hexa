@@ -38,7 +38,6 @@ public class ExtendPreparingTable implements Prepare.PreparingTable {
     @Override
     public List<String> getQualifiedName() {
         List<String> path = new ArrayList<>();
-        path.add(table.getTableInfo().getCatalogName());
         path.add(table.getTableInfo().getSchemaName());
         path.add(table.getTableInfo().getTableName());
         return path;

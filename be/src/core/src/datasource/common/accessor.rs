@@ -1,9 +1,10 @@
+use std::sync::Arc;
 use super::Result;
 use crate::datasource::common::meta::{DatabaseItem, TableDetail};
 use async_trait::async_trait;
 use datafusion::arrow::array::ArrayRef;
 use datafusion::arrow::datatypes::SchemaRef;
-use sqlx::Database;
+use sqlx::{Database, Pool};
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 
 /// Accessor for connecting to sqlx data sources.
@@ -22,7 +23,7 @@ pub trait SqlxAccessor: Sync + Send {
     type Database: Database;
 
     /// Get the Connection associated with the Database for accessing the database.
-    async fn get_conn(&self) -> Result<<Self::Database as Database>::Connection>;
+    async fn get_connection_pool(&self) -> Result<Arc<Pool<Self::Database>>>;
 
     /// Convert the queried sqlx row to an Array.
     async fn row_to_array(

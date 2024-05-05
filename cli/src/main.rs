@@ -178,7 +178,8 @@ impl Hinter for SqlCliHinter {
             .starts_with(line, 0, SearchDirection::Reverse)
             .unwrap_or(None)
         {
-            if sr.entry == line || sr.entry.len() <= line.len() {
+            if sr.entry == line
+                || sr.entry.len() <= line.len() {
                 return None;
             }
             return Some(sr.entry[line.len()..].to_owned());
@@ -241,7 +242,6 @@ impl SqlCliHelper {
             highlighter: MatchingBracketHighlighter::new(),
             colored_prompt: PROMPT.bright_green().to_string(),
             hinter: SqlCliHinter {},
-            // validator: MatchingBracketValidator::new(),
         }
     }
 

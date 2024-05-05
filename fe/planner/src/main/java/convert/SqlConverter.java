@@ -67,21 +67,18 @@ public class SqlConverter {
 
         SqlToRelConverter.Config config = new SqlToRelNodeConfig()
                 .withTrimUnusedFields(true)
-                .withExpand(expand)
                 .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
                 .withRelBuilderConfigTransform(relBuilderConfig -> relBuilderConfig
-                        .withSimplify(false)
-                        .withConvertCorrelateToJoin(true))
-                .withHintStrategyTable(HintStrategyTable.EMPTY)
-                .withCreateValuesRel(false);
+                        .withSimplify(false))
+                .withInSubQueryThreshold(25)
+                .withHintStrategyTable(HintStrategyTable.EMPTY);
 
         SqlToRelConverter sqlToRelConverter = new ExtendSqlToRelConverter(new SqlToRelContext(this),
                 sqlValidator,
                 catalogReader,
                 relOptCluster,
                 StandardConvertletTable.INSTANCE,
-                config,
-                this);
+                config);
 
         RelRoot root = sqlToRelConverter.convertQuery(sqlNode, false, false);
 

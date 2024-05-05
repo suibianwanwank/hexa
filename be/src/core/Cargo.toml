@@ -28,4 +28,8 @@ chrono = "0.4.34"
 
 tracing = {workspace = true}
 
+lazy_static = "1.4.0"
+
+moka = { version = "0.12.7", features = ["future"] }
+
 

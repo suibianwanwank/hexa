@@ -13,10 +13,7 @@ use datafusion::prelude::{SessionConfig, SessionContext};
 use hexa::datasource::dispatch::{DataSourceConfig, QueryDispatcher};
 use hexa_proto::physical_plan::{AsExecutionPlan, DefaultPhysicalExtensionCodec};
 use hexa_proto::protobuf::bridge_server::Bridge;
-use hexa_proto::protobuf::{
-    ExecQueryRequest, ExecQueryResponse, GetTableRequest, ListTablesRequest, ListTablesResponse,
-    TableInfo,
-};
+use hexa_proto::protobuf::{ExecQueryRequest, ExecQueryResponse, GetTableRequest, ListTablesRequest, ListTablesResponse, PhysicalPlanNode, TableInfo};
 use snafu::ResultExt;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -24,7 +21,9 @@ use tokio::sync::mpsc::Sender;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::codegen::tokio_stream::{Stream, StreamExt};
 use tonic::{Request, Response, Status};
-use tracing::{info, span, Level};
+use tracing::{info, instrument};
+use hexa_common::during_time_info;
+use hexa_common::timer::TimerLoggerGuard;
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct BeConnectBridgeService {}
@@ -38,7 +37,11 @@ impl Bridge for BeConnectBridgeService {
         &self,
         request: Request<ExecQueryRequest>,
     ) -> Result<Response<Self::executeQueryStream>, Status> {
-        map_result_to_status_err(self.inner_execute_query(request).await)
+        let req = request.into_inner();
+
+        let node = req.node.unwrap();
+        let job_id = req.header.unwrap().job_id;
+        map_result_to_status_err(self.inner_execute_query(node, job_id.as_str()).await)
     }
 
     type listTablesInCatalogStream = ReceiverStream<Result<ListTablesResponse, Status>>;
@@ -59,23 +62,18 @@ impl Bridge for BeConnectBridgeService {
 }
 
 impl BeConnectBridgeService {
+    #[instrument(skip_all, fields(job_id = job_id))]
     async fn inner_execute_query(
         &self,
-        request: Request<ExecQueryRequest>,
+        node: PhysicalPlanNode,
+        job_id: &str,
     ) -> super::Result<Response<ReceiverStream<Result<ExecQueryResponse, Status>>>> {
-        let req = request.into_inner();
 
-        let node = req.node.unwrap();
-        let job_id = req.header.unwrap().job_id;
 
         let runtime = Arc::new(RuntimeEnv::default());
         let session_state = SessionState::new_with_config_rt(SessionConfig::new(), runtime)
-            .with_session_id(job_id.clone());
+            .with_session_id(job_id.into());
         let ctx = SessionContext::new_with_state(session_state);
-
-        let span = span!(Level::INFO, "[Job_id]", job_id);
-
-        let _entered = span.enter();
 
         // proto to datafusion plan
         let plan = node
@@ -143,13 +141,13 @@ impl BeConnectBridgeService {
         &self,
         plan: Arc<dyn ExecutionPlan>,
     ) -> super::Result<ReceiverStream<Result<ExecQueryResponse, Status>>> {
+        during_time_info!("Query execution completed!");
         let tc = Arc::new(TaskContext::default());
 
         // Attention! Here was expected to asynchronous return results, but found that
         // if you return the result after the format, because the stream is not parsed,
         // do not know the length of all the values in the table,
         // so wait until the future to return the record batch proto message, and then enable the async!
-
 
         // let mut rb_stream = execute_stream(plan, tc).context(ExecuteStreamSnafu {})?;
         //
@@ -177,8 +175,6 @@ impl BeConnectBridgeService {
         let msg = format_all_batch_to_query_response(&rbs);
 
         send_channel_message(&tx, msg).await;
-
-        info!("Finished to send execution response!, return count:{}", rbs.len());
 
         Ok(ReceiverStream::new(rx))
     }

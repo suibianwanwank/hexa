@@ -1,9 +1,9 @@
 use clap::Parser;
+use mimalloc::MiMalloc;
 use hexa_server::server::{BeServer, Server};
-use mimalloc_rust::GlobalMiMalloc;
 
 #[global_allocator]
-static GLOBAL_MALLOC: GlobalMiMalloc = GlobalMiMalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Parser)]
 #[clap(name = "HexaDB")]

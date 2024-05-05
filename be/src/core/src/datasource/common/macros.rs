@@ -74,7 +74,7 @@ macro_rules! impl_get_type_from_sqlx_row {
 #[macro_export]
 macro_rules! execute_sqlx_query_to_array {
     ($ac: expr, $schema: expr, $sql: expr) => {{
-        let mut conn = $ac.get_conn().await?;
+        let conn = $ac.get_connection_pool().await?;
 
         let rows = conn
             .fetch_all(sqlx::query($sql))
