@@ -26,11 +26,11 @@ public class AggregateExecutionPlan
         implements ExecutionPlan, EnumerableRel {
 
     public AggregateExecutionPlan(RelOptCluster cluster,
-                                   RelTraitSet traitSet,
-                                   RelNode input,
-                                   ImmutableBitSet groupSet,
-                                   @Nullable List<ImmutableBitSet> groupSets,
-                                   List<AggregateCall> aggCalls) throws InvalidRelException {
+                                  RelTraitSet traitSet,
+                                  RelNode input,
+                                  ImmutableBitSet groupSet,
+                                  @Nullable List<ImmutableBitSet> groupSets,
+                                  List<AggregateCall> aggCalls) throws InvalidRelException {
         super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     }
 
@@ -43,9 +43,8 @@ public class AggregateExecutionPlan
 
 
         List<RelDataTypeField> inputFields = getInput().getRowType().getFieldList();
-        List<RelDataTypeField> fields = getRowType().getFieldList();
         for (Integer bitSet : getGroupSet()) {
-            RexInputRef inputRef = RexInputRef.of(bitSet, fields);
+            RexInputRef inputRef = RexInputRef.of(bitSet, inputFields);
             proto.datafusion.PhysicalColumn.Builder column = proto.datafusion.PhysicalColumn
                     .newBuilder()
                     .setIndex(inputRef.getIndex())
@@ -55,15 +54,16 @@ public class AggregateExecutionPlan
             aggregateNode.addGroups(false);
         }
 
-
+        List<RelDataTypeField> fields = getRowType().getFieldList();
         for (AggregateCall call : getAggCallList()) {
             aggregateNode.addAggrExpr(transformAggFunction(call, getInput().getRowType().getFieldList()));
-            aggregateNode.addAggrExprName(call.getName() !=null ? call.getName()
+            aggregateNode.addAggrExprName(call.getName() != null
+                    ? call.getName()
                     : fields.get(fields.size() - getGroupCount()).getName());
             aggregateNode.addFilterExpr(MaybeFilter.newBuilder().build());
         }
 
-        aggregateNode.setMode(AggregateMode.FINAL_PARTITIONED);
+        aggregateNode.setMode(AggregateMode.SINGLE);
         aggregateNode.setInputSchema(buildRelNodeSchema(inputFields));
 
         return proto.datafusion.PhysicalPlanNode.newBuilder().setAggregate(aggregateNode).build();
@@ -71,7 +71,7 @@ public class AggregateExecutionPlan
 
     @Override
     public AggregateExecutionPlan copy(RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet,
-                                    @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+                                       @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
         try {
             return new AggregateExecutionPlan(getCluster(), traitSet, input,
                     groupSet, groupSets, aggCalls);

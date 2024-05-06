@@ -9,6 +9,7 @@ on:
 jobs:
   docker-build:
     runs-on: ubuntu-latest
+    environment: DOCKER_ENV
     steps:
       - name: read code
         uses: actions/checkout@v4

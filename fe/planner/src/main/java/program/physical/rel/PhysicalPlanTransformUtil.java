@@ -219,6 +219,7 @@ public class PhysicalPlanTransformUtil {
         }
 
         if (call.getArgList().isEmpty()) {
+            // like count(*), and datafusion not support expr = null
             for (int i = 0; i < fields.size(); i++) {
                 builder.addExpr(transformRexNodeToExprNode(RexInputRef.of(i, fields)));
             }
