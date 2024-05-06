@@ -73,7 +73,7 @@ datastore.mongodb.db = hexa
 ## Usage
 Create first catalog named 'pg'
 ```sql
-create catalog POSTGRESQL as pg with {sourceType: POSTGRESQL,  host:127.0.0.1, port: 5432, username:root,  password:suibianwanwan, database: postgres};
+create catalog POSTGRESQL as "pg" with { "sourceType": "POSTGRESQL", "host" :  "127.0.0.1", "port": "5432", "username": "root", "password": "suibianwanwan", "database": "postgres" }
 ```
 Show create sql with new catalog 'pg'
 ```sql

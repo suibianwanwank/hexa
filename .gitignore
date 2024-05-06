@@ -4,10 +4,11 @@ target/
 !**/src/test/**/target/
 
 ### IntelliJ IDEA ###
-/.idea/*
+*/.idea/*
 *.iws
 *.iml
 *.ipr
+.idea
 
 ### sqlite3
 *.sqlite3
