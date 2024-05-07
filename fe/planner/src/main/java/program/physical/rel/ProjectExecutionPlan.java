@@ -35,7 +35,7 @@ public class ProjectExecutionPlan
         builder.setInput(input);
 
         for (RexNode project : getProjects()) {
-            builder.addExpr(PhysicalPlanTransformUtil.transformRexNodeToExprNode(project));
+            builder.addExpr(ExecutionPlanToDataFusionPlanUtil.transformRexNodeToExprNode(project));
         }
 
         for (RelDataTypeField relDataTypeField : rowType.getFieldList()) {

@@ -19,7 +19,7 @@ import proto.datafusion.PhysicalExprNode;
 
 import java.util.List;
 
-import static program.physical.rel.PhysicalPlanTransformUtil.*;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.*;
 
 public class AggregateExecutionPlan
         extends EnumerableAggregateBase
@@ -66,7 +66,9 @@ public class AggregateExecutionPlan
         aggregateNode.setMode(AggregateMode.SINGLE);
         aggregateNode.setInputSchema(buildRelNodeSchema(inputFields));
 
-        return proto.datafusion.PhysicalPlanNode.newBuilder().setAggregate(aggregateNode).build();
+        return proto.datafusion.PhysicalPlanNode.newBuilder()
+                .setAggregate(aggregateNode)
+                .build();
     }
 
     @Override

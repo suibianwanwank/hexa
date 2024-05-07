@@ -1,6 +1,5 @@
 package program.physical.rel;
 
-import com.ccsu.error.CommonException;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
@@ -10,20 +9,16 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import program.util.RexUtils;
 import proto.datafusion.HashJoinExecNode;
 import proto.datafusion.JoinFilter;
-import proto.datafusion.PhysicalExprNode;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static com.ccsu.error.CommonErrorCode.PLAN_TRANSFORM_ERROR;
-import static program.physical.rel.PhysicalPlanTransformUtil.*;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.*;
 
 public class HashJoinExecutionPlan extends EnumerableHashJoin implements ExecutionPlan {
 

@@ -11,7 +11,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import proto.datafusion.PhysicalExprNode;
 import proto.datafusion.PhysicalSortExprNode;
 
-import static program.physical.rel.PhysicalPlanTransformUtil.transformRexNodeToExprNode;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.transformRexNodeToExprNode;
 
 public class SortExecutionPlan
         extends EnumerableSort

@@ -16,7 +16,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import java.util.List;
 
 import static com.ccsu.pojo.DatasourceType.transformToProtoSourceType;
-import static program.physical.rel.PhysicalPlanTransformUtil.buildRelNodeSchema;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.buildRelNodeSchema;
 
 public class SourceScanExecutionPlan
         extends EnumerableTableScan

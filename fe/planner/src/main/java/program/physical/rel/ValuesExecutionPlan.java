@@ -149,7 +149,7 @@ public class ValuesExecutionPlan extends Values
             throw new CommonException(CommonErrorCode.PLAN_TRANSFORM_ERROR, "Not support value tuples size > 1");
         }
         for (RexLiteral rexLiteral : tuples.get(0)) {
-            ScalarValue scalarValue = PhysicalPlanTransformUtil.transformLiteral(rexLiteral);
+            ScalarValue scalarValue = ExecutionPlanToDataFusionPlanUtil.transformLiteral(rexLiteral);
             builder.addExpr(proto.datafusion.PhysicalExprNode.newBuilder()
                     .setLiteral(scalarValue));
         }

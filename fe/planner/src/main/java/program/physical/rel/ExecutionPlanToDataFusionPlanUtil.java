@@ -4,27 +4,19 @@ import com.ccsu.error.CommonException;
 import com.ccsu.meta.type.ArrowDataType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.*;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.RangeSets;
-import org.apache.calcite.util.Sarg;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import proto.datafusion.InListNode;
-import proto.datafusion.PhysicalExprNode;
-import proto.datafusion.PhysicalInListNode;
-import proto.datafusion.PhysicalIsNotNull;
+import proto.datafusion.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +24,16 @@ import java.util.Objects;
 
 import static com.ccsu.error.CommonErrorCode.PLAN_TRANSFORM_ERROR;
 
-public class PhysicalPlanTransformUtil {
+/**
+ * Util for to datafusion physical plan.
+ *
+ * Most of the code is a piece of shit and will need a lot of rewriting in the future for this section.
+ */
+public class ExecutionPlanToDataFusionPlanUtil {
 
     public static final proto.datafusion.EmptyMessage EMPTY_MESSAGE = proto.datafusion.EmptyMessage.getDefaultInstance();
 
-    private PhysicalPlanTransformUtil() {
+    private ExecutionPlanToDataFusionPlanUtil() {
     }
 
     public static proto.datafusion.JoinType transformJoinType(JoinRelType type) {
@@ -180,11 +177,45 @@ public class PhysicalPlanTransformUtil {
     public static proto.datafusion.PhysicalExprNode transformBinaryExpr(RexCall rexCall) {
         proto.datafusion.PhysicalBinaryExprNode.Builder binary = proto.datafusion.PhysicalBinaryExprNode.newBuilder();
 
-        proto.datafusion.PhysicalExprNode l = transformRexNodeToExprNode(rexCall.getOperands().get(0));
-        proto.datafusion.PhysicalExprNode r = transformRexNodeToExprNode(rexCall.getOperands().get(1));
 
-        binary.setL(l);
-        binary.setR(r);
+        RexNode leftOp = rexCall.getOperands().get(0);
+        RexNode rightOp = rexCall.getOperands().get(1);
+
+        RelDataType leftOpType = leftOp.getType();
+        RelDataType rightOpType = rightOp.getType();
+
+        PhysicalExprNode leftExprNode = transformRexNodeToExprNode(leftOp);
+        PhysicalExprNode rightExprNode = transformRexNodeToExprNode(rightOp);
+
+
+        if (leftOpType.getSqlTypeName() == SqlTypeName.DECIMAL
+                && rightOpType.getSqlTypeName() == SqlTypeName.DECIMAL
+                && rexCall.getKind().belongsTo(SqlKind.BINARY_COMPARISON)) {
+            int leftPrecision = leftOpType.getPrecision();
+            int rightPrecision = rightOpType.getPrecision();
+
+            if (leftPrecision > rightPrecision) {
+
+                proto.datafusion.Decimal.Builder builder = proto.datafusion.Decimal.newBuilder();
+                rightExprNode = PhysicalExprNode.newBuilder().setCast(PhysicalCastNode.newBuilder()
+                        .setExpr(rightExprNode)
+                        .setArrowType(ArrowType.newBuilder().setDECIMAL(
+                                builder.setPrecision(leftPrecision).setScale(leftOpType.getScale())
+                        ))).build();
+            }
+            if (rightPrecision > leftPrecision) {
+                proto.datafusion.Decimal.Builder builder = proto.datafusion.Decimal.newBuilder();
+                leftExprNode = PhysicalExprNode.newBuilder().setCast(PhysicalCastNode.newBuilder()
+                        .setExpr(leftExprNode)
+                        .setArrowType(ArrowType.newBuilder().setDECIMAL(
+                                builder.setPrecision(rightPrecision).setScale(rightOpType.getScale())
+                        ))).build();
+            }
+
+        }
+
+        binary.setL(leftExprNode);
+        binary.setR(rightExprNode);
 
         if (!BINARY_OP_MAP.containsKey(rexCall.getKind())) {
             String errMsg = String.format("RexNode:%s can not be transformed", rexCall.getType());
@@ -210,7 +241,7 @@ public class PhysicalPlanTransformUtil {
     public static proto.datafusion.PhysicalExprNode transformAggFunction(AggregateCall call, List<RelDataTypeField> fields) {
         proto.datafusion.PhysicalAggregateExprNode.Builder builder = proto.datafusion.PhysicalAggregateExprNode.newBuilder();
         String aggName = call.getAggregation().getName();
-        proto.datafusion.AggregateFunction aggregateFunction;
+        proto.datafusion.AggregateFunction aggregateFunction = null;
         try {
             aggregateFunction = proto.datafusion.AggregateFunction.valueOf(aggName);
             builder.setAggrFunction(aggregateFunction);
@@ -236,6 +267,14 @@ public class PhysicalPlanTransformUtil {
         Comparable comparable = Objects.requireNonNull(literal.getValue());
         if (!(literal.getType() instanceof ArrowDataType)) {
             String value = literal.getValue2().toString();
+            if (literal.getType().getSqlTypeName()
+                    == SqlTypeName.DECIMAL) {
+                return builder.setDecimal128Value(Decimal128.newBuilder()
+                                .setValue(ByteString.copyFrom(value.getBytes(StandardCharsets.UTF_8)))
+                                .setP(literal.getType().getPrecision())
+                                .setS(literal.getType().getScale()))
+                        .build();
+            }
             return builder.setUtf8Value(value)
                     .build();
         }

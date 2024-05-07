@@ -10,8 +10,8 @@ import org.apache.calcite.rex.RexNode;
 
 import java.util.Set;
 
-import static program.physical.rel.PhysicalPlanTransformUtil.transformJoinOn;
-import static program.physical.rel.PhysicalPlanTransformUtil.transformJoinType;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.transformJoinOn;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.transformJoinType;
 
 public class MergeJoinExecutionPlan
         extends EnumerableMergeJoin

@@ -10,6 +10,7 @@ use datafusion::arrow::datatypes::DataType::{Decimal128};
 use snafu::ResultExt;
 use sqlx::Row;
 use std::sync::Arc;
+use tracing::info;
 
 for_primitive_array_variants! {impl_sqlx_rows_to_primitive_array_data}
 
@@ -81,10 +82,13 @@ where
                     arr.append_null();
                 }
             }
+            info!("Row transform Decimal{}, {}", p, s);
             let arr = arr
                 .finish()
                 .with_precision_and_scale(p, s)
                 .context(RecordBatchCreateSnafu {})?;
+
+            info!("Row transform Decimal array:{}, {}", arr.precision(), arr.scale());
             Ok(Arc::new(arr))
         }
         _ => Err(ArrayCreate {

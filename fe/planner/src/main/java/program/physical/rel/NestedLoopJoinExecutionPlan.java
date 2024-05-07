@@ -10,8 +10,8 @@ import org.apache.calcite.rex.RexNode;
 
 import java.util.Set;
 
-import static program.physical.rel.PhysicalPlanTransformUtil.transformJoinType;
-import static program.physical.rel.PhysicalPlanTransformUtil.transformRexNodeToJoinFilter;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.transformJoinType;
+import static program.physical.rel.ExecutionPlanToDataFusionPlanUtil.transformRexNodeToJoinFilter;
 
 public class NestedLoopJoinExecutionPlan
         extends EnumerableNestedLoopJoin

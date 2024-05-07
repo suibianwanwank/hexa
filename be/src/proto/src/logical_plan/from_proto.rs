@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::protobuf::{
@@ -749,9 +750,10 @@ impl TryFrom<&protobuf::ScalarValue> for ScalarValue {
                 null_type.try_into().map_err(Error::DataFusionError)?
             }
             Value::Decimal128Value(val) => {
-                let array = vec_to_array(val.value.clone());
+                // let array = vec_to_array(val.value.clone());
+                let value = String::from_utf8(val.value.clone()).unwrap();
                 Self::Decimal128(
-                    Some(i128::from_be_bytes(array)),
+                    Some(i128::from_str(value.as_str()).unwrap()),
                     val.p as u8,
                     val.s as i8,
                 )
